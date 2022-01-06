@@ -10,18 +10,4 @@
 
 #pragma once
 
-#if defined(__amd64__) || defined(__x86_64__)
-#define FRT_ARCH_X86_64
-#elif defined(__aarch64__)
-#define FRT_ARCH_ARM64
-#elif defined(__arm__) || defined(__thumb__)
-#define FRT_ARCH_ARM32
-#endif
-
-#if defined(FRT_ARCH_ARM64) || defined(FRT_ARCH_ARM32)
-#define FRT_ARCH_ARM
-#endif
-
-#if defined(__SIZEOF_INT128__)
-#define FRT_SUPPORTS_INT128
-#endif
+#include "./utility/visit.h"

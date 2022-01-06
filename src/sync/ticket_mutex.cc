@@ -8,20 +8,26 @@
 //                                                                           //
 //======---------------------------------------------------------------======//
 
-#pragma once
+#include "frt/sync/ticket_mutex.h"
+#include "frt/sync/spin_mutex.h"
 
-#if defined(__amd64__) || defined(__x86_64__)
-#define FRT_ARCH_X86_64
-#elif defined(__aarch64__)
-#define FRT_ARCH_ARM64
-#elif defined(__arm__) || defined(__thumb__)
-#define FRT_ARCH_ARM32
-#endif
+namespace frt {
+  void TicketMutex::lock() noexcept {
+    auto ticket = count_.fetch_add(1, frt::memory_order_relaxed);
 
-#if defined(FRT_ARCH_ARM64) || defined(FRT_ARCH_ARM32)
-#define FRT_ARCH_ARM
-#endif
+    while (true) {
+      if (current_.load(frt::memory_order_acquire) == ticket) {
+        break;
+      }
 
-#if defined(__SIZEOF_INT128__)
-#define FRT_SUPPORTS_INT128
-#endif
+      while (current_.load(frt::memory_order_relaxed) != ticket) {
+        frt::internal::spin_hint();
+      }
+    }
+  }
+
+  void TicketMutex::unlock() noexcept {
+    // release changes to any threads using this lock
+    current_.fetch_add(1, frt::memory_order_release);
+  }
+} // namespace frt
