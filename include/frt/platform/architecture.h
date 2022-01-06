@@ -21,7 +21,3 @@
 #if defined(FRT_ARCH_ARM64) || defined(FRT_ARCH_ARM32)
 #define FRT_ARCH_ARM
 #endif
-
-#if defined(__SIZEOF_INT128__)
-#define FRT_SUPPORTS_INT128
-#endif

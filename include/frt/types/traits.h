@@ -192,10 +192,8 @@ namespace frt::traits {
       long,               // NOLINT(google-runtime-int)
       unsigned long long, // NOLINT(google-runtime-int)
       long long,          // NOLINT(google-runtime-int)
-#if defined(FRT_SUPPORTS_INT128)
       __int128,
       unsigned __int128,
-#endif
       char8_t,
       char16_t,
       char32_t,
@@ -459,4 +457,17 @@ namespace frt::traits {
   template <typename T, typename F> struct ConditionalTrait<false, T, F> { using type = F; };
 
   template <bool B, typename T, typename F> using Conditional = typename ConditionalTrait<B, T, F>::type;
+
+  template <typename...> using Void = void;
+
+  template <typename U, typename T, typename...> struct RebindTrait {
+    static_assert(internal::dependent_false<T>, "illegal type for `rebind`");
+  };
+
+  template <typename U, template <typename, typename...> typename S, typename T, typename... Args>
+  struct RebindTrait<U, S<T, Args...>> {
+    using type = S<U, Args...>;
+  };
+
+  template <typename U, typename... Args> using Rebind = typename RebindTrait<U, Args...>::type;
 } // namespace frt::traits

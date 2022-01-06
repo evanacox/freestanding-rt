@@ -7,8 +7,11 @@ semi-decent `mem{cpy|move|set|cmp}` implementations if certain macros are define
 
 ## Compiler Support
 
-Currently, `libfrt` only supports GCC/Clang-based compilers due to the intrinsics being used, and because of the liberal
-use of C++20 features.
+Currently, `libfrt` only supports modern versions of GCC/Clang-based compilers due to the intrinsics being used, and
+because of the liberal use of C++20 features.
+
+Some intrinsics needed only exist in C++20 mode, and the library uses concepts throughout. C++20 modules are not used
+yet, but this may change once they become more stable.
 
 ## Platform Support
 
@@ -24,8 +27,8 @@ Nothing is required of the platform in order to compile, besides the following h
 
 * has support from GCC/Clang's `__atomic_*` builtins
 * has an 8-bit `char` type
-* has support for `{u}int64_t`, whether emulated or native (although it won't use them internally, it will use
-  whatever `size_t` is)
+* uses two's complement (this is also a requirement for C++20)
+* has support for `__int128` (i.e. architecture is 64-bit)
 
 ## License
 

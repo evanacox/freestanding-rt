@@ -47,9 +47,7 @@ namespace frt {
 
   using u64 = uint64_t;
 
-#if defined(FRT_SUPPORTS_INT128)
   using u128 = unsigned __int128;
-#endif
 
   using uleast8 = uint_least8_t;
 
@@ -75,9 +73,7 @@ namespace frt {
 
   using i64 = int64_t;
 
-#if defined(FRT_SUPPORTS_INT128)
   using i128 = __int128;
-#endif
 
   using ileast8 = int_least8_t;
 
