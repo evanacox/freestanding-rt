@@ -1,0 +1,27 @@
+#######################
+BasedOnStyle: LLVM
+#######################
+
+AccessModifierOffset: -2
+AllowAllArgumentsOnNextLine: false
+AllowAllConstructorInitializersOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
+AllowShortBlocksOnASingleLine: Empty
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortLambdasOnASingleLine: Empty
+AlignAfterOpenBracket: DontAlign
+BinPackArguments: false
+BinPackParameters: false
+BreakBeforeBinaryOperators: NonAssignment
+BreakConstructorInitializers: BeforeColon
+ColumnLimit: 120
+ConstructorInitializerAllOnOneLineOrOnePerLine: true
+IndentCaseLabels: true
+IndentExternBlock: Indent
+IndentPPDirectives: None
+IndentWidth: 2
+NamespaceIndentation: All
+PenaltyReturnTypeOnItsOwnLine: 999999 # keeps random functions from getting return type on different line
+PointerAlignment: Left
