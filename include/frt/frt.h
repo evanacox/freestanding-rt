@@ -1,6 +1,6 @@
 //======---------------------------------------------------------------======//
 //                                                                           //
-// Copyright 2021 Evan Cox <evanacox00@gmail.com>. All rights reserved.      //
+// Copyright 2021-2022 Evan Cox <evanacox00@gmail.com>. All rights reserved. //
 //                                                                           //
 // Use of this source code is governed by a BSD-style license that can be    //
 // found in the LICENSE.txt file at the root of this project, or at the      //
@@ -15,3 +15,4 @@
 #include "./runtime.h"
 #include "./sync.h"
 #include "./types.h"
+#include "./utility.h"

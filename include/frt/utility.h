@@ -10,6 +10,4 @@
 
 #pragma once
 
-#include "./platform/architecture.h"
-#include "./platform/compiler.h"
-#include "./platform/macros.h"
+#include "./utility/visit.h"

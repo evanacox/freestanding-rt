@@ -53,6 +53,7 @@ add_library(libfrt
         src/runtime/ubsan.cc
         src/runtime/assert_runtime.cc
         src/sync/spin_mutex.cc
-        src/core/memory.cc)
+        src/sync/ticket_mutex.cc
+        src/core/memory.cc include/frt/utility/visit.h)
 frt_configure_target(libfrt)
 target_include_directories(libfrt PUBLIC include)
