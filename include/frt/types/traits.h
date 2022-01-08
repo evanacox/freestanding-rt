@@ -14,6 +14,12 @@
 #include "./basic.h"
 #include <limits.h>
 
+// we include `invoke.h` later for the `is_invocable` traits,
+// we need specifically the fragment inside the namespace to be included
+// exactly once (and pragma once doesn't do this)
+#ifndef FRT_INTERNAL_TRAITS_FRAGMENT
+#define FRT_INTERNAL_TRAITS_FRAGMENT
+
 namespace frt::traits {
   namespace internal {
     template <typename T> inline constexpr bool dependent_false = false;
@@ -21,7 +27,17 @@ namespace frt::traits {
     template <typename T, T Val> inline constexpr bool dependent_false_value = false;
   } // namespace internal
 
-  template <typename T, T Value> struct IntegralConstant { inline static constexpr auto value = Value; };
+  template <typename T, T Value> struct IntegralConstant {
+    inline static constexpr T value = Value;
+
+    constexpr T operator()() const noexcept {
+      return value;
+    }
+
+    constexpr operator T() const noexcept { // NOLINT(google-explicit-constructor)
+      return value;
+    }
+  };
 
   template <bool Value> using BoolConstant = IntegralConstant<bool, Value>;
 
@@ -29,11 +45,19 @@ namespace frt::traits {
 
   using FalseType = BoolConstant<false>;
 
-  template <typename T> struct Negation : BoolConstant<!T::value> {};
+  template <typename... Ts> inline constexpr bool conjunction = (Ts::value && ...);
 
-  template <typename... Ts> struct Disjunction : BoolConstant<(Ts::value || ...)> {};
+  template <typename... Ts> inline constexpr bool disjunction = (Ts::value || ...);
 
-  template <> struct Disjunction<> : FalseType {};
+  template <typename T> inline constexpr bool negation = !T::value;
+
+  template <typename T> struct NegationTrait : BoolConstant<negation<T>> {};
+
+  template <typename... Ts> struct DisjunctionTrait : BoolConstant<disjunction<Ts...>> {};
+
+  template <> struct DisjunctionTrait<> : FalseType {};
+
+  template <typename... Ts> struct ConjunctionTrait : BoolConstant<conjunction<Ts...>> {};
 
   template <typename T, typename U> inline constexpr bool is_same = __is_same(T, U);
 
@@ -240,40 +264,68 @@ namespace frt::traits {
 
   template <typename T> struct IsCompoundTrait : BoolConstant<is_compound<T>> {};
 
-  template <typename T> inline constexpr bool is_trivial = __is_trivial(T);
+  namespace internal {
+    template <typename T, size_t = sizeof(T)>
+    constexpr TrueType is_complete_or_unbounded(TypeIdentityTrait<T> /*unused*/) {
+      return {};
+    }
+
+    template <typename Identity, typename Nested = typename Identity::type>
+    constexpr BoolConstant<is_reference<Nested> || is_function<Nested> || is_void<Nested> || is_unbounded_array<Nested>>
+    is_complete_or_unbounded(Identity /*unused*/) {
+      return {};
+    }
+
+    template <typename T> constexpr auto complete_or_unbounded() noexcept {
+      static_assert(is_complete_or_unbounded(TypeIdentityTrait<T>{}),
+          "argument must be a complete type, i.e something you can do `sizeof` on");
+
+      return true;
+    }
+  } // namespace internal
+
+  template <typename T> inline constexpr bool is_trivial = internal::complete_or_unbounded<T>() && __is_trivial(T);
 
   template <typename T> struct IsTrivialTrait : BoolConstant<is_trivial<T>> {};
 
-  template <typename T> inline constexpr bool is_trivially_copyable = __is_trivially_copyable(T);
+  template <typename T>
+  inline constexpr bool is_trivially_copyable = internal::complete_or_unbounded<T>() && __is_trivially_copyable(T);
 
   template <typename T> struct IsTriviallyCopyableTrait : BoolConstant<is_trivially_copyable<T>> {};
 
-  template <typename T> inline constexpr bool is_standard_layout = __is_standard_layout(T);
+  template <typename T>
+  inline constexpr bool is_standard_layout = internal::complete_or_unbounded<T>() && __is_standard_layout(T);
 
   template <typename T> struct IsStandardLayoutTrait : BoolConstant<is_standard_layout<T>> {};
 
   template <typename T>
-  inline constexpr bool has_unique_object_representations = __has_unique_object_representations(
-      RemoveCV<RemoveAllExtents<T>>);
+  inline constexpr bool has_unique_object_representations = internal::complete_or_unbounded<T>()
+                                                            && __has_unique_object_representations(
+                                                                RemoveCV<RemoveAllExtents<T>>);
 
   template <typename T>
   struct HasUniqueObjectRepresentationsTrait : BoolConstant<has_unique_object_representations<T>> {};
 
-  template <typename T> inline constexpr bool is_empty = __is_empty(T);
+  template <typename T> inline constexpr bool is_empty = internal::complete_or_unbounded<T>() && __is_empty(T);
 
   template <typename T> struct IsEmptyTrait : BoolConstant<is_empty<T>> {};
 
-  template <typename T> inline constexpr bool is_polymorphic = __is_polymorphic(T);
+  template <typename T>
+  inline constexpr bool is_polymorphic = internal::complete_or_unbounded<T>() && __is_polymorphic(T);
 
   template <typename T> struct IsPolymorphicTrait : BoolConstant<is_polymorphic<T>> {};
 
-  template <typename T> inline constexpr bool is_final = __is_final(T);
+  template <typename T> inline constexpr bool is_final = internal::complete_or_unbounded<T>() && __is_final(T);
 
   template <typename T> struct IsFinalTrait : BoolConstant<is_final<T>> {};
 
-  template <typename T> inline constexpr bool is_abstract = __is_abstract(T);
+  template <typename T> inline constexpr bool is_abstract = internal::complete_or_unbounded<T>() && __is_abstract(T);
 
   template <typename T> struct IsAbstractTrait : BoolConstant<is_abstract<T>> {};
+
+  template <typename T> inline constexpr bool is_aggregate = internal::complete_or_unbounded<T>() && __is_aggregate(T);
+
+  template <typename T> struct IsAggregateTrait : BoolConstant<is_aggregate<T>> {};
 
   template <typename T, bool = is_arithmetic<T>> inline constexpr bool is_signed = false;
 
@@ -292,12 +344,41 @@ namespace frt::traits {
     };
 
     template <typename From, typename To> class IsConvertibleHelper<From, To, false> {
-      template <typename To1> static void test1(To1) noexcept;
+      template <typename To1> static void test1(To1 /*unused*/) noexcept {}
 
-      template <typename From1, typename To1, typename = decltype(test1<To1>(traits::declval<From1>()))>
-      static TrueType test2(int);
+      template <typename From1, typename To1>
+      static TrueType test2(int /*unused*/) noexcept requires(requires { test1<To1>(traits::declval<From1>()); }) {
+        return {};
+      }
 
-      template <typename, typename> static FalseType test2(...);
+      template <typename, typename> static FalseType test2(...) noexcept {
+        return {};
+      }
+
+    public:
+      using type = decltype(test2<From, To>(0));
+    };
+
+    template <typename From, typename To, bool = is_void<From> || is_function<To> || is_array<To>>
+    struct IsNothrowConvertibleHelper {
+      using type = BoolConstant<is_void<To>>;
+    };
+
+    template <typename From, typename To> class IsNothrowConvertibleHelper<From, To, false> {
+      template <typename To1> static void test1(To1 /*unused*/) noexcept {}
+
+      template <typename From1, typename To1>
+      static TrueType test2(int /*unused*/) noexcept requires(requires {
+        // clang-format off
+        { test1<To1>(traits::declval<From1>()) } noexcept;
+        // clang-format on
+      }) {
+        return {};
+      }
+
+      template <typename, typename> static FalseType test2(...) noexcept {
+        return {};
+      }
 
     public:
       using type = decltype(test2<From, To>(0));
@@ -308,6 +389,12 @@ namespace frt::traits {
   inline constexpr bool is_convertible = internal::IsConvertibleHelper<From, To>::type::value;
 
   template <typename From, typename To> struct IsConvertibleTrait : BoolConstant<is_convertible<From, To>> {};
+
+  template <typename From, typename To>
+  inline constexpr bool is_nothrow_convertible = internal::IsNothrowConvertibleHelper<From, To>::type::value;
+
+  template <typename From, typename To>
+  struct IsNothrowConvertibleTrait : BoolConstant<is_nothrow_convertible<From, To>> {};
 
   template <typename T> inline constexpr bool is_scoped_enum = is_enum<T> && !is_convertible<T, int>;
 
@@ -342,7 +429,7 @@ namespace frt::traits {
   template <typename T> struct AddPointerTrait { using type = AddPointer<T>; };
 
   namespace internal {
-    template <frt::size Size> struct AssociatedWChar;
+    template <frt::size N> struct AssociatedWChar;
 
     template <> struct AssociatedWChar<8> { using type = frt::i8; };
 
@@ -351,6 +438,8 @@ namespace frt::traits {
     template <> struct AssociatedWChar<32> { using type = frt::i32; };
 
     template <> struct AssociatedWChar<64> { using type = frt::i64; };
+
+    using WCharSignedType = typename AssociatedWChar<sizeof(wchar_t) * CHAR_BIT>::type;
   } // namespace internal
 
   template <typename T> struct MakeSignedTrait {
@@ -374,15 +463,13 @@ namespace frt::traits {
   // NOLINTNEXTLINE(google-runtime-int)
   template <> struct MakeSignedTrait<unsigned long long> { using type = signed long long; };
 
-  template <> struct MakeSignedTrait<char8_t> { using type = frt::u8; };
+  template <> struct MakeSignedTrait<char8_t> { using type = frt::i8; };
 
-  template <> struct MakeSignedTrait<char16_t> { using type = frt::u16; };
+  template <> struct MakeSignedTrait<char16_t> { using type = frt::i16; };
 
-  template <> struct MakeSignedTrait<char32_t> { using type = frt::u32; };
+  template <> struct MakeSignedTrait<char32_t> { using type = frt::i32; };
 
-  template <> struct MakeSignedTrait<wchar_t> {
-    using type = typename MakeSignedTrait<typename internal::AssociatedWChar<sizeof(wchar_t) * CHAR_BIT>::type>::type;
-  };
+  template <> struct MakeSignedTrait<wchar_t> { using type = internal::WCharSignedType; };
 
   template <typename T> using MakeSigned = typename MakeSignedTrait<T>::type;
 
@@ -410,16 +497,223 @@ namespace frt::traits {
   template <> struct MakeUnsignedTrait<char32_t> { using type = frt::i32; };
 
   template <> struct MakeUnsignedTrait<wchar_t> {
-    using type = typename MakeUnsignedTrait<typename internal::AssociatedWChar<sizeof(wchar_t) * CHAR_BIT>::type>::type;
+    using type = typename MakeUnsignedTrait<internal::WCharSignedType>::type;
   };
 
   template <typename T> using MakeUnsigned = typename MakeUnsignedTrait<T>::type;
 
+  template <typename T, typename... Args>
+  inline constexpr bool is_constructible = internal::complete_or_unbounded<T>() && __is_constructible(T, Args...);
+
+  template <typename T, typename... Args> struct IsConstructibleTrait : BoolConstant<is_constructible<T, Args...>> {};
+
+  template <typename T, typename... Args>
+  inline constexpr bool is_trivially_constructible = internal::complete_or_unbounded<T>()
+                                                     && __is_trivially_constructible(T, Args...);
+
+  template <typename T, typename... Args>
+  struct IsTriviallyConstructibleTrait : BoolConstant<is_trivially_constructible<T, Args...>> {};
+
+  template <typename T, typename... Args>
+  inline constexpr bool is_nothrow_constructible = internal::complete_or_unbounded<T>()
+                                                   && __is_nothrow_constructible(T, Args...);
+
+  template <typename T, typename... Args>
+  struct IsNothrowConstructibleTrait : BoolConstant<is_nothrow_constructible<T, Args...>> {};
+
+#define FRT_INTERNAL_IS_X_CONSTRUCTIBLE(name, pascal_name)                                                             \
+  template <typename T> inline constexpr bool is_##name##_constructible = is_constructible<T FRT_INTERNAL_X>;          \
+                                                                                                                       \
+  template <typename T> struct Is##pascal_name##ConstructibleTrait : BoolConstant<is_##name##_constructible<T>> {};    \
+                                                                                                                       \
+  template <typename T>                                                                                                \
+  inline constexpr bool is_trivially_##name##_constructible = is_trivially_constructible<T FRT_INTERNAL_X>;            \
+                                                                                                                       \
+  template <typename T>                                                                                                \
+  struct IsTrivially##pascal_name##ConstructibleTrait : BoolConstant<is_trivially_##name##_constructible<T>> {};       \
+                                                                                                                       \
+  template <typename T>                                                                                                \
+  inline constexpr bool is_nothrow_##name##_constructible = is_nothrow_constructible<T FRT_INTERNAL_X>;                \
+                                                                                                                       \
+  template <typename T>                                                                                                \
+  struct IsNothrow##pascal_name##ConstructibleTrait : BoolConstant<is_nothrow_##name##_constructible<T>> {}
+
+#define FRT_INTERNAL_X
+  // is_default_constructible
+  // is_trivially_default_constructible
+  // is_nothrow_default_constructible
+  FRT_INTERNAL_IS_X_CONSTRUCTIBLE(default, Default);
+#undef FRT_INTERNAL_X
+#define FRT_INTERNAL_X , const T&
+  // is_copy_constructible
+  // is_trivially_copy_constructible
+  // is_nothrow_copy_constructible
+  FRT_INTERNAL_IS_X_CONSTRUCTIBLE(copy, Copy);
+#undef FRT_INTERNAL_X
+#define FRT_INTERNAL_X , T&&
+  // is_move_constructible
+  // is_trivially_move_constructible
+  // is_nothrow_move_constructible
+  FRT_INTERNAL_IS_X_CONSTRUCTIBLE(move, Move);
+#undef FRT_INTERNAL_X
+
+#undef FRT_INTERNAL_IS_X_CONSTRUCTIBLE
+
+  template <typename T, typename U>
+  inline constexpr bool is_assignable = internal::complete_or_unbounded<T>() && __is_assignable(T, U);
+
+  template <typename T, typename U> struct IsAssignableTrait : BoolConstant<is_assignable<T, U>> {};
+
+  template <typename T, typename U>
+  inline constexpr bool is_trivially_assignable = internal::complete_or_unbounded<T>()
+                                                  && __is_trivially_assignable(T, U);
+
+  template <typename T, typename U> struct IsTriviallyAssignableTrait : BoolConstant<is_trivially_assignable<T, U>> {};
+
+  template <typename T, typename U>
+  inline constexpr bool is_nothrow_assignable = internal::complete_or_unbounded<T>() && __is_nothrow_assignable(T, U);
+
+  template <typename T, typename U> struct IsNothrowAssignableTrait : BoolConstant<is_nothrow_assignable<T, U>> {};
+
+#define FRT_INTERNAL_IS_X_ASSIGNABLE(name, pascal_name)                                                                \
+  template <typename T> inline constexpr bool is_##name##_assignable = is_assignable<T FRT_INTERNAL_X>;                \
+                                                                                                                       \
+  template <typename T> struct Is##pascal_name##AssignableTrait : BoolConstant<is_##name##_assignable<T>> {};          \
+                                                                                                                       \
+  template <typename T>                                                                                                \
+  inline constexpr bool is_trivially_##name##_assignable = is_trivially_assignable<T FRT_INTERNAL_X>;                  \
+                                                                                                                       \
+  template <typename T>                                                                                                \
+  struct IsTrivially##pascal_name##AssignableTrait : BoolConstant<is_trivially_##name##_assignable<T>> {};             \
+                                                                                                                       \
+  template <typename T>                                                                                                \
+  inline constexpr bool is_nothrow_##name##_assignable = is_nothrow_assignable<T FRT_INTERNAL_X>;                      \
+                                                                                                                       \
+  template <typename T>                                                                                                \
+  struct IsNothrow##pascal_name##AssignableTrait : BoolConstant<is_nothrow_##name##_assignable<T>> {}
+
+#define FRT_INTERNAL_X , const T&
+  // is_copy_assignable
+  // is_trivially_copy_assignable
+  // is_nothrow_copy_assignable
+  FRT_INTERNAL_IS_X_ASSIGNABLE(copy, Copy);
+#undef FRT_INTERNAL_X
+#define FRT_INTERNAL_X , T&&
+  // is_move_assignable
+  // is_trivially_move_assignable
+  // is_nothrow_move_assignable
+  FRT_INTERNAL_IS_X_ASSIGNABLE(move, Move);
+#undef FRT_INTERNAL_X
+
+#undef FRT_INTERNAL_IS_X_ASSIGNABLE
+
+  namespace internal {
+    template <typename T>
+    concept Destructible = requires(T t) {
+      t.~T();
+    };
+
+    template <typename T>
+    concept NothrowDestructible = requires(T t) {
+      // clang-format off
+      { t.~T() } noexcept;
+      // clang-format on
+    };
+
+    template <typename T,
+        bool = (is_void<T> || is_unbounded_array<T> || is_function<T>),
+        bool = (is_reference<T> || is_scalar<T>)>
+    struct IsDestructibleSafe;
+
+    template <typename T>
+    struct IsDestructibleSafe<T, false, false> : public BoolConstant<Destructible<RemoveAllExtents<T>>> {
+      static_assert(internal::is_complete_or_unbounded(TypeIdentityTrait<T>{}));
+    };
+
+    template <typename T> struct IsDestructibleSafe<T, true, false> : public FalseType {
+      static_assert(internal::is_complete_or_unbounded(TypeIdentityTrait<T>{}));
+    };
+
+    template <typename T> struct IsDestructibleSafe<T, false, true> : public TrueType {
+      static_assert(internal::is_complete_or_unbounded(TypeIdentityTrait<T>{}));
+    };
+
+    template <typename T,
+        bool = (is_void<T> || is_unbounded_array<T> || is_function<T>),
+        bool = (is_reference<T> || is_scalar<T>)>
+    struct IsNTDestructibleSafe;
+
+    template <typename T>
+    struct IsNTDestructibleSafe<T, false, false> : public BoolConstant<NothrowDestructible<RemoveAllExtents<T>>> {
+      static_assert(internal::is_complete_or_unbounded(TypeIdentityTrait<T>{}));
+    };
+
+    template <typename T> struct IsNTDestructibleSafe<T, true, false> : public FalseType {
+      static_assert(internal::is_complete_or_unbounded(TypeIdentityTrait<T>{}));
+    };
+
+    template <typename T> struct IsNTDestructibleSafe<T, false, true> : public TrueType {
+      static_assert(internal::is_complete_or_unbounded(TypeIdentityTrait<T>{}));
+    };
+  } // namespace internal
+
+  template <typename T> inline constexpr bool is_destructible = internal::IsNTDestructibleSafe<T>::value;
+
+  template <typename T> struct IsDestructibleTrait : BoolConstant<is_destructible<T>> {};
+
+  template <typename T>
+  inline constexpr bool is_trivially_destructible = internal::IsDestructibleSafe<T>::value //
+      && __has_trivial_destructor(T);
+
+  template <typename T> struct IsTriviallyDestructibleTrait : BoolConstant<is_trivially_destructible<T>> {};
+
+  template <typename T> inline constexpr bool is_nothrow_destructible = internal::IsNTDestructibleSafe<T>::value;
+
+  template <typename T> struct IsNothrowDestructibleTrait : BoolConstant<is_nothrow_destructible<T>> {};
+
+  template <typename T>
+  inline constexpr bool has_virtual_destructor = internal::complete_or_unbounded<T>() && __has_virtual_destructor(T);
+
+  template <typename T> inline constexpr frt::usize alignment_of = (internal::complete_or_unbounded<T>(), alignof(T));
+
+  template <typename T> struct AlignmentOfTrait : IntegralConstant<frt::usize, alignment_of<T>> {};
+
+  template <typename> struct RankTrait : public IntegralConstant<frt::usize, 0> {};
+
+  template <typename T, frt::usize Size>
+  struct RankTrait<T[Size]> : // NOLINT(modernize-avoid-c-arrays)
+                              public IntegralConstant<frt::usize, 1 + RankTrait<T>::value> {};
+
+  template <typename T>
+  struct RankTrait<T[]> : // NOLINT(modernize-avoid-c-arrays)
+                          public IntegralConstant<frt::usize, 1 + RankTrait<T>::value> {};
+
+  template <typename, unsigned> struct ExtentTrait : public IntegralConstant<frt::usize, 0> {};
+
+  template <typename T, unsigned U, frt::usize Size>
+  struct ExtentTrait<T[Size], U> : // NOLINT(modernize-avoid-c-arrays)
+                                   public IntegralConstant<frt::usize, U == 0 ? Size : ExtentTrait<T, U - 1>::value> {};
+
+  template <typename T, unsigned U>
+  struct ExtentTrait<T[], U> : // NOLINT(modernize-avoid-c-arrays)
+                               public IntegralConstant<frt::usize, U == 0 ? 0 : ExtentTrait<T, U - 1>::value> {};
+
+  template <typename Base, typename Derived> inline constexpr bool is_base_of = __is_base_of(Base, Derived);
+
+  template <typename Base, typename Derived> struct IsBaseOfTrait : BoolConstant<is_base_of<Base, Derived>> {};
+
+  // as of GCC 11.2, this doesn't exist. It seems to be committed for GCC 12, but that isn't a thing yet
+#if __has_builtin(__is_layout_compatible)
+  template <typename T, typename U>
+  inline constexpr bool is_layout_compatible = internal::complete_or_unbounded<T>()
+                                               && internal::complete_or_unbounded<U>() && __is_layout_compatible(T, U);
+
+  template <typename T, typename U> struct IsLayoutCompatible : BoolConstant<is_layout_compatible<T, U>> {};
+#endif
+
   template <frt::size Len, frt::size Align> struct AlignedStorageTrait {
-    // NOLINTNEXTLINE(readability-identifier-naming)
-    struct type {
-      // NOLINTNEXTLINE(modernize-avoid-c-arrays)
-      alignas(Align) frt::byte data[Len];
+    struct type {                         // NOLINT(readability-identifier-naming)
+      alignas(Align) frt::byte data[Len]; // NOLINT(modernize-avoid-c-arrays)
     };
   };
 
@@ -470,4 +764,84 @@ namespace frt::traits {
   };
 
   template <typename U, typename... Args> using Rebind = typename RebindTrait<U, Args...>::type;
+
+  template <typename T> using RemoveCVRef = RemoveCV<RemoveReference<T>>;
+
+  template <typename T> struct RemoveCVRefTrait { using type = RemoveCVRef<T>; };
+
+  template <typename T>
+  using Decay = Conditional<traits::is_array<RemoveReference<T>>,
+      RemoveExtent<RemoveReference<T>>*,
+      Conditional<traits::is_function<RemoveReference<T>>, AddPointer<RemoveReference<T>>, RemoveCVRef<T>>>;
+
+  template <typename T> struct DecayTrait { using type = Decay<T>; };
+
+  template <bool B, typename T = void> struct EnableIfTrait {};
+
+  template <typename T> struct EnableIfTrait<true, T> { using type = T; };
+
+  template <bool B, typename T> using EnableIf = typename EnableIfTrait<B, T>::type;
+
+  template <typename...> struct CommonTypeTrait {};
+
+  template <typename T> struct CommonTypeTrait<T> : CommonTypeTrait<T, T> {};
+
+  namespace internal {
+    template <typename T1, typename T2> using ConditionalResult = decltype(false ? declval<T1>() : declval<T2>());
+
+    template <typename, typename, typename = void> struct DecayConditionalResult {};
+
+    template <typename T1, typename T2>
+    struct DecayConditionalResult<T1, T2, Void<ConditionalResult<T1, T2>>> : DecayTrait<ConditionalResult<T1, T2>> {};
+
+    template <typename T1, typename T2, typename = void>
+    struct CommonType2Impl : DecayConditionalResult<const T1&, const T2&> {};
+
+    template <typename T1, typename T2>
+    struct CommonType2Impl<T1, T2, Void<ConditionalResult<T1, T2>>> : DecayConditionalResult<T1, T2> {};
+  } // namespace internal
+
+  template <typename T1, typename T2>
+  struct CommonTypeTrait<T1, T2> : Conditional<is_same<T1, Decay<T1>> && is_same<T2, Decay<T2>>,
+                                       typename internal::CommonType2Impl<T1, T2>::type,
+                                       typename CommonTypeTrait<Decay<T1>, Decay<T2>>::type> {};
+
+  namespace internal {
+    template <typename AlwaysVoid, typename T1, typename T2, typename... R> struct CommonTypeMultiImpl {};
+    template <typename T1, typename T2, typename... R>
+    struct CommonTypeMultiImpl<Void<typename CommonTypeTrait<T1, T2>::type>, T1, T2, R...>
+        : CommonTypeTrait<typename CommonTypeTrait<T1, T2>::type, R...> {};
+  } // namespace internal
+
+  template <typename T1, typename T2, typename... R>
+  struct CommonTypeTrait<T1, T2, R...> : internal::CommonTypeMultiImpl<void, T1, T2, R...> {};
+
+  template <typename... Ts> using CommonType = typename CommonTypeTrait<Ts...>::type;
+
+  template <typename T> struct UnderlyingTypeTrait {};
+
+  template <typename T>
+  requires(traits::is_enum<T>) struct UnderlyingTypeTrait<T> {
+    using type = __underlying_type(T);
+  };
+
+  template <typename T> using UnderlyingType = typename UnderlyingTypeTrait<T>::type;
+
+  [[nodiscard]] FRT_ALWAYS_INLINE constexpr bool is_constant_evaluated() noexcept {
+#if __cpp_if_consteval >= 202106L
+    // clang-format off
+    if consteval { return true; } else { return false; }
+    // clang-format on
+#else
+    return __builtin_is_constant_evaluated();
+#endif
+  }
 } // namespace frt::traits
+
+#endif
+
+// is_invocable
+// is_nothrow_invocable
+// is_invocable_r
+// is_nothrow_invocable_r
+#include "./invoke.h"

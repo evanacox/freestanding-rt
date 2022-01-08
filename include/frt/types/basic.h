@@ -65,7 +65,7 @@ namespace frt {
 
   using ufast64 = uint_fast64_t;
 
-  using i8 = byte;
+  using i8 = ibyte;
 
   using i16 = int16_t;
 

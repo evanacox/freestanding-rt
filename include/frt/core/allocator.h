@@ -128,7 +128,6 @@ namespace frt {
       { a.deallocate(p, n) } noexcept;
       // clang-format on
     };
-
   } // namespace internal
 
   template <typename A>
