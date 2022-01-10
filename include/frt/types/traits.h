@@ -11,6 +11,7 @@
 #pragma once
 
 #include "../platform/compiler.h"
+#include "../platform/macros.h"
 #include "./basic.h"
 #include <limits.h>
 
@@ -327,9 +328,7 @@ namespace frt::traits {
 
   template <typename T> struct IsAggregateTrait : BoolConstant<is_aggregate<T>> {};
 
-  template <typename T, bool = is_arithmetic<T>> inline constexpr bool is_signed = false;
-
-  template <typename T> inline constexpr bool is_signed<T, true> = T(-1) < T(0);
+  template <typename T> inline constexpr bool is_signed = is_arithmetic<T>&& T(-1) < T(0);
 
   template <typename T> struct IsSignedTrait : BoolConstant<is_signed<T>> {};
 
@@ -780,34 +779,35 @@ namespace frt::traits {
 
   template <typename T> struct EnableIfTrait<true, T> { using type = T; };
 
-  template <bool B, typename T> using EnableIf = typename EnableIfTrait<B, T>::type;
+  template <bool B, typename T = void> using EnableIf = typename EnableIfTrait<B, T>::type;
 
   template <typename...> struct CommonTypeTrait {};
 
   template <typename T> struct CommonTypeTrait<T> : CommonTypeTrait<T, T> {};
 
   namespace internal {
-    template <typename T1, typename T2> using ConditionalResult = decltype(false ? declval<T1>() : declval<T2>());
+    template <typename T1, typename T2> using If = decltype(dependent_false<T1> ? declval<T1>() : declval<T2>());
 
     template <typename, typename, typename = void> struct DecayConditionalResult {};
 
     template <typename T1, typename T2>
-    struct DecayConditionalResult<T1, T2, Void<ConditionalResult<T1, T2>>> : DecayTrait<ConditionalResult<T1, T2>> {};
+    struct DecayConditionalResult<T1, T2, Void<If<T1, T2>>> : DecayTrait<If<T1, T2>> {};
 
     template <typename T1, typename T2, typename = void>
     struct CommonType2Impl : DecayConditionalResult<const T1&, const T2&> {};
 
     template <typename T1, typename T2>
-    struct CommonType2Impl<T1, T2, Void<ConditionalResult<T1, T2>>> : DecayConditionalResult<T1, T2> {};
+    struct CommonType2Impl<T1, T2, Void<If<T1, T2>>> : DecayConditionalResult<T1, T2> {};
   } // namespace internal
 
   template <typename T1, typename T2>
   struct CommonTypeTrait<T1, T2> : Conditional<is_same<T1, Decay<T1>> && is_same<T2, Decay<T2>>,
-                                       typename internal::CommonType2Impl<T1, T2>::type,
-                                       typename CommonTypeTrait<Decay<T1>, Decay<T2>>::type> {};
+                                       internal::CommonType2Impl<T1, T2>,
+                                       CommonTypeTrait<Decay<T1>, Decay<T2>>> {};
 
   namespace internal {
     template <typename AlwaysVoid, typename T1, typename T2, typename... R> struct CommonTypeMultiImpl {};
+
     template <typename T1, typename T2, typename... R>
     struct CommonTypeMultiImpl<Void<typename CommonTypeTrait<T1, T2>::type>, T1, T2, R...>
         : CommonTypeTrait<typename CommonTypeTrait<T1, T2>::type, R...> {};
@@ -817,6 +817,108 @@ namespace frt::traits {
   struct CommonTypeTrait<T1, T2, R...> : internal::CommonTypeMultiImpl<void, T1, T2, R...> {};
 
   template <typename... Ts> using CommonType = typename CommonTypeTrait<Ts...>::type;
+
+  template <typename, typename, template <typename> typename, template <typename> typename>
+  struct BasicCommonReference {};
+
+  namespace internal {
+    template <typename From> struct CopyCvImpl { template <typename To> using type = To; };
+
+    template <typename From> struct CopyCvImpl<const From> { template <typename To> using type = const To; };
+
+    template <typename From> struct CopyCvImpl<volatile From> { template <typename To> using type = volatile To; };
+
+    template <typename From> struct CopyCvImpl<const volatile From> {
+      template <typename To> using type = const volatile To;
+    };
+
+    template <typename From, typename To> using CopyCv = typename CopyCvImpl<From>::template type<To>;
+
+    template <typename From> struct CopyQualifiersImpl { template <typename To> using type = CopyCv<From, To>; };
+
+    template <typename From> struct CopyQualifiersImpl<From&> {
+      template <typename To> using type = traits::AddLValueReference<CopyCv<From, To>>;
+    };
+
+    template <typename From> struct CopyQualifiersImpl<From&&> {
+      template <typename To> using type = traits::AddRValueReference<CopyCv<From, To>>;
+    };
+
+    template <typename From> using CopyQualifiers = typename internal::CopyQualifiersImpl<From>;
+
+    template <typename T1, typename T2, class = void> struct CommonReferenceImplTwoCommon : CommonTypeTrait<T1, T2> {};
+
+    template <typename T1, typename T2> struct CommonReferenceImplTwoCommon<T1, T2, Void<If<T1, T2>>> {
+      using type = If<T1, T2>;
+    };
+
+    template <typename T1, typename T2>
+    using BasicCommonReferenceSpecialization = typename BasicCommonReference<RemoveCVRef<T1>,
+        RemoveCVRef<T2>,
+        CopyQualifiers<T1>::template type,
+        CopyQualifiers<T2>::template type>::type;
+
+    template <typename T1, typename T2, class = void>
+    struct CommonReferenceImplTwoBasic : CommonReferenceImplTwoCommon<T1, T2> {};
+
+    template <typename T1, typename T2>
+    struct CommonReferenceImplTwoBasic<T1, T2, Void<BasicCommonReferenceSpecialization<T1, T2>>> {
+      using type = BasicCommonReferenceSpecialization<T1, T2>;
+    };
+
+    template <typename T1,
+        typename T2,
+        typename Result = If<CopyCv<T1, T2>&, CopyCv<T2, T1>&>,
+        EnableIf<is_lvalue_reference<Result>, int> = 0>
+    using LValueCommonRef = Result;
+
+    template <typename T1, typename T2> using RValueCommonRef = RemoveReference<LValueCommonRef<T1, T2>>&&;
+
+    template <typename T1, typename T2, class = void>
+    struct CommonReferenceImplTwo : CommonReferenceImplTwoBasic<T1, T2> {};
+
+    template <typename T1, typename T2> struct CommonReferenceImplTwo<T1&, T2&, Void<LValueCommonRef<T1, T2>>> {
+      using type = LValueCommonRef<T1, T2>;
+    };
+
+    template <typename T1, typename T2>
+    struct CommonReferenceImplTwo<T1&&, T2&, EnableIf<is_convertible<T1&&, LValueCommonRef<const T1, T2>>>> {
+      using type = LValueCommonRef<const T1, T2>;
+    };
+
+    template <typename T1, typename T2>
+    struct CommonReferenceImplTwo<T1&, T2&&, EnableIf<is_convertible<T2&&, LValueCommonRef<const T2, T1>>>> {
+      using type = LValueCommonRef<const T2, T1>;
+    };
+
+    template <typename T1, typename T2>
+    struct CommonReferenceImplTwo<T1&&,
+        T2&&,
+        EnableIf<is_convertible<T1&&, RValueCommonRef<T1, T2>> && is_convertible<T1&&, RValueCommonRef<T1, T2>>>> {
+      using type = RValueCommonRef<T1, T2>;
+    };
+
+    template <typename...> struct CommonReferenceImpl;
+
+    template <> struct CommonReferenceImpl<> {};
+
+    template <typename T1> struct CommonReferenceImpl<T1> : TypeIdentityTrait<T1> {};
+
+    template <typename T1, typename T2> struct CommonReferenceImpl<T1, T2> : CommonReferenceImplTwo<T1, T2> {};
+
+    template <typename AlwaysVoid, typename T1, typename T2, typename... Types> struct FoldCommonReference {};
+
+    template <typename T1, typename T2, typename... Types>
+    struct FoldCommonReference<Void<typename CommonReferenceImpl<T1, T2>::type>, T1, T2, Types...>
+        : CommonReferenceImpl<typename CommonReferenceImpl<T1, T2>::type, Types...> {};
+
+    template <typename T1, typename T2, typename T3, typename... Types>
+    struct CommonReferenceImpl<T1, T2, T3, Types...> : FoldCommonReference<void, T1, T2, T3, Types...> {};
+  } // namespace internal
+
+  template <typename... Ts> using CommonReference = typename internal::CommonReferenceImpl<Ts...>::type;
+
+  template <typename... Ts> struct CommonReferenceTrait : internal::CommonReferenceImpl<Ts...> {};
 
   template <typename T> struct UnderlyingTypeTrait {};
 

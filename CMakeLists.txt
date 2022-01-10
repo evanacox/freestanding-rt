@@ -54,6 +54,6 @@ add_library(libfrt
         src/runtime/assert_runtime.cc
         src/sync/spin_mutex.cc
         src/sync/ticket_mutex.cc
-        src/core/memory.cc include/frt/utility/visit.h)
+        src/core/memory.cc)
 frt_configure_target(libfrt)
 target_include_directories(libfrt PUBLIC include)

@@ -14,4 +14,5 @@
 #include "./core/bit.h"
 #include "./core/limits.h"
 #include "./core/memory.h"
+#include "./core/numeric.h"
 #include "./core/pointers.h"

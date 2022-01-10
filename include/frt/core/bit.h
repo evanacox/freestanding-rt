@@ -50,7 +50,7 @@ namespace frt {
   ///
   /// \param value The value to check set bits of
   /// \return The number of set bits in `value`
-  template <Unsigned T> [[nodiscard]] FRT_PURE constexpr int popcount(T value) noexcept {
+  template <UnsignedIntegral T> [[nodiscard]] FRT_PURE constexpr int popcount(T value) noexcept {
     if constexpr (SameAs<T, unsigned long>) { // NOLINT(google-runtime-int)
       return __builtin_popcountll(value);
     } else if constexpr (SameAs<T, unsigned long long>) { // NOLINT(google-runtime-int)
@@ -65,7 +65,7 @@ namespace frt {
   ///
   /// \param value The value to check
   /// \return True if the value is a power of 2, false otherwise
-  template <Unsigned T> [[nodiscard]] FRT_PURE constexpr bool has_single_bit(T value) noexcept {
+  template <UnsignedIntegral T> [[nodiscard]] FRT_PURE constexpr bool has_single_bit(T value) noexcept {
     return frt::popcount(value) == 1;
   }
 
@@ -73,7 +73,7 @@ namespace frt {
   ///
   /// \param value The value to check
   /// \return The number of leading zeroes in the bit representation
-  template <Unsigned T> [[nodiscard]] FRT_PURE constexpr int countl_zero(T value) noexcept {
+  template <UnsignedIntegral T> [[nodiscard]] FRT_PURE constexpr int countl_zero(T value) noexcept {
     // GCC makes it UB to call the `clz` builtins with `0`
     if (value == 0) {
       return NumericLimits<T>::digits;
@@ -95,7 +95,7 @@ namespace frt {
   ///
   /// \param value The value to check
   /// \return The number of leading ones in the bit representation
-  template <Unsigned T> [[nodiscard]] FRT_PURE constexpr int countl_one(T value) noexcept {
+  template <UnsignedIntegral T> [[nodiscard]] FRT_PURE constexpr int countl_one(T value) noexcept {
     // GCC makes it UB to call the `clz` builtins with `0`
     if (value == NumericLimits<T>::max) {
       return NumericLimits<T>::digits;
@@ -109,7 +109,7 @@ namespace frt {
   ///
   /// \param value The value to check
   /// \return The number of leading zeroes in the bit representation
-  template <Unsigned T> [[nodiscard]] FRT_PURE constexpr int countr_zero(T value) noexcept {
+  template <UnsignedIntegral T> [[nodiscard]] FRT_PURE constexpr int countr_zero(T value) noexcept {
     // GCC makes it UB to call the `clz` builtins with `0`
     if (value == 0) {
       return NumericLimits<T>::digits;
@@ -128,7 +128,7 @@ namespace frt {
   ///
   /// \param value The value to check
   /// \return The number of leading ones in the bit representation
-  template <Unsigned T> [[nodiscard]] FRT_PURE constexpr int countr_one(T value) noexcept {
+  template <UnsignedIntegral T> [[nodiscard]] FRT_PURE constexpr int countr_one(T value) noexcept {
     // GCC makes it UB to call the `clz` builtins with `0`
     if (value == NumericLimits<T>::max) {
       return NumericLimits<T>::digits;
@@ -138,21 +138,66 @@ namespace frt {
     return frt::countl_zero(static_cast<T>(~value));
   }
 
+  /// If `x != 0`, calculates the minimum number of bits required to represent `value`, i.e
+  /// `1 + floor(log2(value))`. If `x == 0`, returns `0`.
+  ///
+  /// This function is equivalent  to `T(NumericLimits<T>::digits) - T(countl_zero(value))`, ignoring type conversions.
+  ///
+  /// \param value The value to find the bit width of
+  /// \return The minimum number of bits.
+  template <UnsignedIntegral T> FRT_PURE constexpr T bit_width(T value) noexcept {
+    // ex: 8-bit
+    //
+    //     value: 0101 1101 (93)
+    //  expected: 0000 0111 (7)
+    //                  ^ digits<T> - leading zeroes = 7
+    //
+    return static_cast<T>(NumericLimits<T>::digits) - static_cast<T>(frt::countl_zero(value));
+  }
+
   /// Rounds up to the next largest power of 2 that's greater than or equal to `value`.
+  ///
+  /// The behavior is undefined if that value is not representable inside of type `T`.
   ///
   /// \param value The value to round up to the next power of 2
   /// \return The next power of 2 that's greater than or equal to `value`
-  template <Unsigned T> FRT_PURE constexpr T next_pow2(T value) noexcept {
-    // ex: 8-bit, num 31: 0001 1111:
-    //     (1 << (8 - 3)), as (31 - 1) has 3 leading zeroes
-    //        -> (1 << 5)
-    //        -> 32
+  template <UnsignedIntegral T> FRT_PURE constexpr T bit_ceil(T value) noexcept {
+    // ex: 8-bit
     //
-    // given `0001 1111` the next nearest pow of 2 is `0010 0000` so we need to shift `1`
-    // by `digits - 3` to get the 1 in the right place. the `x - 1` means that any
-    // actual power of 2s dont get rounded up, since we want greater than **or equal to**.
-    // return T(1) << (T(NumericLimits<T>::digits) - std::countl_zero(x - T(1)));
-    return;
+    //     value: 0001 1111 (31)
+    //  expected: 0010 0000 (32)
+    //              ^
+    //              this is 1 shifted exactly `bit_width(value - 1)` bits left
+    //
+    // note: (value - 1) to make powers of 2 slide down one, so the calculation still works
+    if (value <= static_cast<T>(1)) {
+      // `value - 1` would be kind of broken if we did that with `value == 0`
+      return 1;
+    }
+
+    FRT_ASSERT(frt::bit_width<T>(value - static_cast<T>(1)) != NumericLimits<T>::digits,
+        "next largest power of 2 is not representable inside of `T`");
+
+    return static_cast<T>(1) << frt::bit_width<T>(value - static_cast<T>(1));
+  }
+
+  /// Rounds down to the smallest power of 2 that's not greater than `value`.
+  ///
+  /// \param value The value to round up to the next power of 2
+  /// \return The next power of 2 that's greater than or equal to `value`
+  template <UnsignedIntegral T> FRT_PURE constexpr T bit_floor(T value) noexcept {
+    // ex: 8-bit
+    //
+    //     value: 0001 1111 (31)
+    //  expected: 0001 0000 (16)
+    //               ^
+    //               this is 1 shifted exactly (digits<T> - leading_zeroes(value)) - 1 bits left
+    //
+    if (value == 0) {
+      return 0;
+    }
+
+    return static_cast<T>(1) << frt::bit_width<T>(value);
   }
 
   /// Computes `x modulo y` where `y` is a power of 2, but does it in the fancy way that
@@ -161,17 +206,46 @@ namespace frt {
   /// \param x The dividend of the division operation
   /// \param y The divisor of the division operation
   /// \return Returns the remainder of the division, aka `x mod y`
-  template <Unsigned T> FRT_PURE constexpr T modulo_pow2(T x, T y) noexcept {
-    FRT_ASSERT(frt::has_single_bit(y), "`y` must be a power of 2 for `modulo_pow2` to work!");
-
+  template <UnsignedIntegral T> FRT_PURE constexpr T modulo_pow2(T x, T y) noexcept {
     // ex:
     //         0111 1111 (127)
     //     mod 0001 0000 (16)
     //       = 0000 1111 (15)
     //         ^^^^ we want to shave off all bits until the first bit **after** the set bit of `y`
     //
-    // just like with base-10 where `x % 10` gets the last 1 digit, `x % 100` gets the last 2 digits
-    // etc, in base-2 powers of 2 do the same. Therefore, we want to strip off the higher bits
+    FRT_ASSERT(y != 0, "cannot calculate `mod 0`");
+    FRT_ASSERT(frt::has_single_bit(y), "`y` must be a power of 2 for `modulo_pow2` to work!");
+
     return x & (y - 1);
+  }
+
+  /// Performs a circular left shift. See https://en.wikipedia.org/wiki/Circular_shift
+  ///
+  /// \param value The value to shift
+  /// \param shift_by The number of bits to circular-shift by
+  /// \return `value` shifted
+  template <UnsignedIntegral T> FRT_PURE constexpr T rotl(T value, int shift_by) noexcept {
+    static_assert(frt::has_single_bit(NumericLimits<T>::digits), "please use a better platform");
+
+    auto s = static_cast<T>(shift_by);
+    auto bits = static_cast<T>(NumericLimits<T>::digits);
+
+    // GCC and Clang can both recognize this and turn it into the platform's rotate instruction
+    return (value << frt::modulo_pow2(s, bits)) | (value >> frt::modulo_pow2(-s, bits));
+  }
+
+  /// Performs a circular right shift. See https://en.wikipedia.org/wiki/Circular_shift
+  ///
+  /// \param value The value to shift
+  /// \param shift_by The number of bits to circular-shift by
+  /// \return `value` shifted
+  template <UnsignedIntegral T> FRT_PURE constexpr T rotr(T value, int shift_by) noexcept {
+    static_assert(frt::has_single_bit(NumericLimits<T>::digits), "please use a better platform");
+
+    auto s = static_cast<T>(shift_by);
+    auto bits = static_cast<T>(NumericLimits<T>::digits);
+
+    // GCC and Clang can both recognize this and turn it into the platform's rotate instruction
+    return (value >> frt::modulo_pow2(s, bits)) | (value << frt::modulo_pow2(-s, bits));
   }
 } // namespace frt
