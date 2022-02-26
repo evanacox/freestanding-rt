@@ -24,7 +24,7 @@ namespace frt {
   /// \param value The value to bit-cast
   /// \return An object of type `To` with a bit representation copied from `value`
   template <TriviallyCopyable To, TriviallyCopyable From>
-  [[nodiscard]] FRT_PURE constexpr To bit_cast(const From& value) noexcept requires(sizeof(To) == sizeof(From)) {
+  [[nodiscard]] constexpr To bit_cast(const From& value) noexcept requires(sizeof(To) == sizeof(From)) {
     return __builtin_bit_cast(To, value);
   }
 
