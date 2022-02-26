@@ -63,4 +63,16 @@ namespace frt {
     const char* func_ = "";
     frt::i32 line_ = -1;
   };
+
+  extern "C" {
+    /// Effectively a `frt::SourceLocation` but for C FFI
+    struct CSourceLocation {
+      /// Filename where the assertion occurred
+      const char* file;
+      /// Function name where the assertion occurred
+      const char* function;
+      /// The line number where the assertion is on
+      frt::i32 line;
+    };
+  }
 } // namespace frt

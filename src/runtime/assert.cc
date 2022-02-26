@@ -8,11 +8,11 @@
 //                                                                           //
 //======---------------------------------------------------------------======//
 
-#include "frt/runtime/assert_runtime.h"
+#include "frt/runtime/assert.h"
 
-#ifndef FRT_GENERATE_DEFAULT_ASSERT_HANDLER
+#ifdef FRT_GENERATE_DEFAULT_ASSERT_FAIL
 
-void frt::__frt_assert_fail(const char* /*unused*/, const char* /*unused*/, frt::AssertLocation /*unused*/) noexcept {
+void frt::__frt_assert_fail(const char* /*unused*/, const char* /*unused*/, frt::CSourceLocation /*unused*/) noexcept {
   __builtin_trap();
 }
 

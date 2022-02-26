@@ -8,9 +8,12 @@
 //                                                                           //
 //======---------------------------------------------------------------======//
 
-#pragma once
+#include "frt/runtime/failures.h"
 
-#include "./platform/architecture.h"
-#include "./platform/compiler.h"
-#include "./platform/macros.h"
-#include "./platform/compare.h"
+#ifdef FRT_GENERATE_DEFAULT_TRIED_THROW
+
+void frt::__frt_tried_alloc(const char* /*unused*/, frt::CSourceLocation /*unused*/) noexcept {
+  __builtin_trap();
+}
+
+#endif

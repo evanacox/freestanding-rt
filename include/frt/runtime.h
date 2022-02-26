@@ -11,5 +11,5 @@
 #pragma once
 
 #include "./runtime/assert.h"
-#include "./runtime/assert_runtime.h"
+#include "./runtime/failures.h"
 #include "./runtime/ubsan.h"

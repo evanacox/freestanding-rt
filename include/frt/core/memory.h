@@ -11,7 +11,6 @@
 #pragma once
 
 #include "../platform/macros.h"
-#include "../runtime/assert_runtime.h"
 #include "../types/basic.h"
 
 extern "C" {
@@ -117,38 +116,11 @@ namespace frt {
     return ::memcmp(lhs, rhs, static_cast<frt::usize>(length));
   }
 
-  /// `memcpy` equivalent, except assertions are enabled and it can't be optimized away with `as-if`
-  ///
-  /// \param to The destination of the copy
-  /// \param from The source of the copy
-  /// \param length The number of bytes to copy
-  /// \return `to`
-  FRT_ALWAYS_INLINE void* force_mem_copy(void* __restrict to, const void* __restrict from, frt::size length) noexcept;
-
-  /// `memmove` equivalent, except assertions are enabled and it can't be optimized away with `as-if`
-  ///
-  /// \param to The destination of the move
-  /// \param from The source of the move
-  /// \param length The number of bytes to copy
-  /// \return `to`
-  FRT_ALWAYS_INLINE void* force_mem_move(void* to, const void* from, frt::size length) noexcept;
-
-  /// `memset` equivalent, except assertions are enabled and it can't be optimized away with `as-if`
-  ///
-  /// \param to The destination to set to `static_cast<unsigned char>(value)`
-  /// \param value The value to set to the range
-  /// \param length The number of bytes to set
-  /// \return `to`
-  void* force_mem_set(void* to, frt::byte value, frt::size length) noexcept;
-
-  /// `memcmp` equivalent, except assertions are enabled and it can't be optimized away with `as-if`
-  ///
-  /// \param lhs The first set of bytes to compare
-  /// \param rhs The second set of bytes to compare
-  /// \param length The number of bytes to compare
-  /// \return `0` if equal, negative if first different byte is less-than in `lhs`, positive if first different byte
-  /// is greater-than in `lhs`
-  [[nodiscard]] int force_mem_compare(const void* lhs, const void* rhs, frt::size length) noexcept;
+#ifdef FRT_GENERATE_DEFAULT_MEM_INTRINS
+  inline constexpr bool generated_memory_intrinsics = true;
+#else
+  inline constexpr bool generated_memory_intrinsics = false;
+#endif
 
   /// Gets the address of an object without ever using `operator&` overloads
   ///

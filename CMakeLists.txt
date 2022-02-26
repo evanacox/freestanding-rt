@@ -37,8 +37,13 @@ function(frt_configure_target TARGET)
     # enable warnings and warnings-as-errors in development
     # there's no reason not to, and its off by default for normal use
     if (FRT_DEV)
-        target_compile_options(${TARGET} PRIVATE ${FRT_WARNINGS})
         message(STATUS "adding ${FRT_WARNINGS} to ${TARGET}")
+        message(STATUS "adding FRT_GENERATE definitions to ${TARGET}")
+        target_compile_options(${TARGET} PRIVATE ${FRT_WARNINGS})
+        target_compile_definitions(${TARGET} PUBLIC
+                FRT_GENERATE_DEFAULT_ASSERT_FAIL
+                FRT_GENERATE_DEFAULT_TRIED_THROW
+                FRT_GENERATE_DEFAULT_STD_COMPARE)
     endif ()
 
     if (${CMAKE_BUILD_TYPE} STREQUAL Debug)
@@ -48,12 +53,13 @@ function(frt_configure_target TARGET)
     target_compile_features(${TARGET} PUBLIC cxx_std_20)
 endfunction()
 
-add_library(libfrt
+add_library(frt
         src/rt.cc
         src/runtime/ubsan.cc
-        src/runtime/assert_runtime.cc
+        src/runtime/assert.cc
+        src/runtime/failures.cc
         src/sync/spin_mutex.cc
         src/sync/ticket_mutex.cc
         src/core/memory.cc)
-frt_configure_target(libfrt)
-target_include_directories(libfrt PUBLIC include)
+frt_configure_target(frt)
+target_include_directories(frt PUBLIC include)

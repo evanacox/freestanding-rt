@@ -8,50 +8,69 @@
 //                                                                           //
 //======---------------------------------------------------------------======//
 #include "frt/core/memory.h"
-#include "frt/core/bit.h"
 #include "frt/platform/macros.h"
-#include "frt/runtime/assert.h"
-
-namespace {
-  template <typename T> bool is_aligned_for(const void* address) noexcept {
-    return frt::modulo_pow2(reinterpret_cast<frt::usize>(address), alignof(T));
-  }
-
-  void memcpy_internal(void* __restrict to, const void* __restrict from, frt::usize len) noexcept {
-#ifdef __clang__
-    constexpr frt::usize unrolled_cutoff = 64;
-
-    if (len > unrolled_cutoff) {
-
-      __builtin_memcpy_inline(to, from, 64);
-    }
-#elif defined(FRT_ARCH_X86_64)
-
-#elif defined(FRT_ARCH_X86_64)
-
-#endif
-  }
-} // namespace
 
 extern "C" FRT_ALWAYS_INLINE void* frt::__frt_mem_copy(void* __restrict to,
     const void* __restrict from,
     frt::usize length) noexcept {
+  // TODO: make a better memcpy. __builtin_memcpy_inline? rep movsb?
+  auto* dst = static_cast<frt::byte* __restrict>(to);
+  const auto* src = static_cast<const frt::byte* __restrict>(from);
+
+  while (length-- > 0) {
+    *dst++ = *src++;
+  }
+
   return to;
 }
 
 extern "C" FRT_ALWAYS_INLINE void* frt::__frt_mem_move(void* to, const void* from, frt::usize length) noexcept {
+  // TODO: fast mem_move
+  auto* dst = static_cast<frt::byte*>(to);
+  const auto* src = static_cast<const frt::byte*>(from);
+
+  if (from < to) {
+    // `__restrict` may or may not be satisfied here, so we can't just call `__frt_mem_copy`
+    while (length-- > 0) {
+      *dst++ = *src++;
+    }
+  } else {
+    dst += length - 1;
+    src += length - 1;
+
+    while (length-- > 0) {
+      *dst-- = *src--;
+    }
+  }
+
   return to;
 }
 
 extern "C" FRT_ALWAYS_INLINE void* frt::__frt_mem_set(void* to, int value, frt::usize length) noexcept {
-  return to;
+  // TODO: fast mem_set
+  auto* dst = static_cast<frt::byte*>(to);
+
+  while (length-- > 0) {
+    *dst++ = static_cast<frt::byte>(value);
+  }
+
+  return dst;
 }
 
 extern "C" FRT_ALWAYS_INLINE int frt::__frt_mem_compare(const void* lhs, const void* rhs, frt::usize length) noexcept {
+  const auto* a = static_cast<const frt::byte*>(lhs);
+  const auto* b = static_cast<const frt::byte*>(rhs);
+
+  while (length-- > 0) {
+    if (*a++ != *b++) {
+      return (a[-1] < b[-1]) ? -1 : 1;
+    }
+  }
+
   return 0;
 }
 
-#ifndef FRT_GENERATE_MEM_FUNCTIONS
+#ifdef FRT_GENERATE_DEFAULT_MEM_INTRINS
 
 // all of these just fall back to the `__frt` functions, but are force-inlined to avoid the call overhead.
 // this also makes it equivalent to calling the other one without breaking the expectation that these symbols
@@ -74,27 +93,3 @@ extern "C" int memcmp(const void* lhs, const void* rhs, frt::usize length) noexc
 }
 
 #endif
-
-void* frt::force_mem_copy(void* to, const void* from, frt::size length) noexcept {
-  FRT_ASSERT(to != nullptr && from != nullptr, "neither `to` nor `from` are allowed to be `nullptr`");
-
-  return frt::__frt_mem_copy(to, from, static_cast<frt::usize>(length));
-}
-
-void* frt::force_mem_move(void* to, const void* from, frt::size length) noexcept {
-  FRT_ASSERT(to != nullptr && from != nullptr, "neither `to` nor `from` are allowed to be `nullptr`");
-
-  return frt::__frt_mem_move(to, from, static_cast<frt::usize>(length));
-}
-
-void* frt::force_mem_set(void* to, frt::byte value, frt::size length) noexcept {
-  FRT_ASSERT(to != nullptr, "`to` is not allowed to be `nullptr`");
-
-  return frt::__frt_mem_set(to, static_cast<int>(value), static_cast<frt::usize>(length));
-}
-
-int frt::force_mem_compare(const void* lhs, const void* rhs, frt::size length) noexcept {
-  FRT_ASSERT(lhs != nullptr && rhs != nullptr, "neither `lhs` nor `rhs` are allowed to be `nullptr`");
-
-  return frt::__frt_mem_compare(lhs, rhs, static_cast<frt::usize>(length));
-}
