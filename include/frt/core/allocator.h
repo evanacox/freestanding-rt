@@ -130,11 +130,19 @@ namespace frt {
     };
   } // namespace internal
 
+  /// A concept that models allocators for the FRT library. However, these are not
+  /// the same as the `Cpp17Allocator` requirements in the standard!
+  ///
+  /// There is one key difference: Allocators are **value-based**. This makes it possible
+  /// to make this like stack allocators and have the container still be able to be
+  /// moved around and whatnot.
   template <typename A>
-  concept Allocator =
-      internal::HasValueType<A> && SameAs<typename A::value_type, internal::FirstTemplateArg<A>> && requires(A a,
-          A a1,
-          A a2) {
+  concept Allocator = internal::HasValueType<A>                        //
+      && internal::AllocatorPointerOps<A>                              //
+      && internal::AllocatorStorage<A>                                 //
+      && Regular<A>                                                    //
+      && SameAs<typename A::value_type, internal::FirstTemplateArg<A>> //
+      && requires(A a, A a1, A a2) {
     typename internal::AllocPtr<A>;
     typename internal::AllocConstPtr<A>;
     typename internal::AllocVoidPtr<A>;

@@ -13,13 +13,6 @@
 #include "../platform/compiler.h"
 #include "../platform/macros.h"
 #include "./basic.h"
-#include <limits.h>
-
-// we include `invoke.h` later for the `is_invocable` traits,
-// we need specifically the fragment inside the namespace to be included
-// exactly once (and pragma once doesn't do this)
-#ifndef FRT_INTERNAL_TRAITS_FRAGMENT
-#define FRT_INTERNAL_TRAITS_FRAGMENT
 
 namespace frt::traits {
   namespace internal {
@@ -939,11 +932,3 @@ namespace frt::traits {
 #endif
   }
 } // namespace frt::traits
-
-#endif
-
-// is_invocable
-// is_nothrow_invocable
-// is_invocable_r
-// is_nothrow_invocable_r
-#include "./invoke.h"

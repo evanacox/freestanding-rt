@@ -10,7 +10,9 @@
 
 #pragma once
 
+#include "../utility/swap.h"
 #include "./forward.h"
+#include "./invoke.h"
 #include "./traits.h"
 
 namespace frt {
@@ -264,4 +266,101 @@ namespace frt {
   /// \tparam T The type to check
   template <typename T>
   concept TriviallyCopyable = traits::is_trivially_copyable<T>;
+
+  /// Checks if a type can be swapped with the `frt::swap` customization point
+  ///
+  /// \tparam T The type to check
+  template <typename T>
+  concept Swappable = requires(T& lhs, T& rhs) {
+    frt::swap(lhs, rhs);
+  };
+
+  /// Checks if a type can be swapped with the `frt::swap` customization point
+  ///
+  /// \tparam T The type to check
+  template <typename T, typename U>
+  concept SwappableWith = CommonReferenceWith<T, U> && requires(T& lhs, U& rhs) {
+    frt::swap(frt::forward<T>(lhs), frt::forward<T>(lhs));
+    frt::swap(frt::forward<U>(rhs), frt::forward<U>(rhs));
+    frt::swap(frt::forward<T>(lhs), frt::forward<U>(rhs));
+    frt::swap(frt::forward<U>(rhs), frt::forward<T>(lhs));
+  };
+
+  /// Checks if an object is able to be moved (able to be move constructed, move assigned, and swapped).
+  ///
+  /// \tparam T The type to check
+  template <typename T>
+  concept Movable = traits::is_object<T> && MoveConstructible<T> && AssignableFrom<T&, T> && Swappable<T>;
+
+  /// Checks if an object is able to be moved **and** copied (able to be copy constructed and copy assigned).
+  ///
+  /// \tparam T The type to check
+  template <typename T>
+  concept Copyable = Movable<T> && CopyConstructible<T> && AssignableFrom<T&, T&> && AssignableFrom<T&,
+      const T&> && AssignableFrom<T&, const T>;
+
+  /// Checks if a type is copyable and default-constructible. It is meant to model "normal" types
+  /// that model the builtin types, but need not support `==`.
+  ///
+  /// \tparam T The type to check
+  template <typename T>
+  concept SemiRegular = Copyable<T> && DefaultInitializable<T>;
+
+  /// Checks if a type is copyable, default-constructible and comparable with `==`. It is meant to
+  /// model "normal" types that model the builtin types.
+  ///
+  /// \tparam T The type to check
+  template <typename T>
+  concept Regular = SemiRegular<T> && EqualityComparable<T>;
+
+  /// Specifies that an object is callable with a set of arguments if invoked with `frt::invoke`.
+  ///
+  /// The function does not have to be *equality-preserving*, i.e. it does not have to evaluate to
+  /// the same output when given the same arguments.
+  ///
+  /// \tparam F The callable type
+  /// \tparam Args A set of arguments to pass to the callable
+  template <typename F, typename... Args>
+  concept Invocable = requires(F&& f, Args&&... args) {
+    frt::invoke(frt::forward<F>(f), frt::forward<Args>(args)...);
+  };
+
+  /// Specifies that an object is callable with a set of arguments if invoked with `frt::invoke`.
+  ///
+  /// The function must be *equality-preserving*, i.e. it must evaluate to the same output when
+  /// given the same arguments as input.
+  ///
+  /// \tparam F The callable type
+  /// \tparam Args A set of arguments to pass to the callable
+  template <typename F, typename... Args>
+  concept RegularInvocable = frt::Invocable<F, Args...>;
+
+  /// Specifies that a callable is usable as a predicate. It must be `RegularInvocable` and the return
+  /// type must be able to be used as-if it were a boolean.
+  ///
+  /// \tparam F The callable type
+  /// \tparam Args A set of arguments to pass to the callable
+  template <typename F, typename... Args>
+  concept Predicate = RegularInvocable<F, Args...> && __BooleanTestable<traits::InvokeResult<F, Args...>>;
+
+  /// Specifies that a callable defines a binary relation over the values of `T` and `U`.
+  ///
+  /// \tparam R The callable type
+  /// \tparam T The first type for the relation
+  /// \tparam U The second type for the relation
+  template <typename R, typename T, typename U>
+  concept Relation = Predicate<R, T, T> && Predicate<R, U, U> && Predicate<R, T, U> && Predicate<R, U, T>;
+
+  /// Specifies that a callable defines an equivalence relation between `T` and `U`.
+  ///
+  /// The following requirements must hold:
+  ///   1. It is reflexive. For all `x`, `r(x, x)` is true
+  ///   2. It is symmetric. For all `a` and `b`, `r(a, b) == r(b, a)`
+  ///   3. It is transitive. For all `a`, `b` and `c`, `r(a, b) && r(b, c)` implies `r(a, c)`.
+  ///
+  /// \tparam R The callable type
+  /// \tparam T The first type for the relation
+  /// \tparam U The second type for the relation
+  template <typename R, typename T, typename U>
+  concept EquivalenceRelation = Relation<R, T, U>;
 } // namespace frt

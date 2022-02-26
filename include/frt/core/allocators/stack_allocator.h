@@ -10,10 +10,11 @@
 
 #pragma once
 
-#include "./collections.h"
-#include "./core.h"
-#include "./platform.h"
-#include "./runtime.h"
-#include "./sync.h"
-#include "./types.h"
-#include "./utility.h"
+#include "../../types/basic.h"
+#include "../allocator.h"
+
+namespace frt {
+  template <typename T, frt::usize Bytes> class StackAllocator {
+    //
+  };
+} // namespace frt

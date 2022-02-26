@@ -20,7 +20,6 @@ namespace frt {
   class ReferenceWrapper;
 
   namespace traits {
-
     namespace internal {
       template <typename> inline constexpr bool is_reference_wrapper = false;
 

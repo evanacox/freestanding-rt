@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include "../runtime/assert.h"
 #include "../types/concepts.h"
 #include "../types/traits.h"
 #include "./limits.h"

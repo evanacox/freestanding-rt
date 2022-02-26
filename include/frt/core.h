@@ -11,6 +11,7 @@
 #pragma once
 
 #include "./core/allocator.h"
+#include "./core/allocators.h"
 #include "./core/bit.h"
 #include "./core/limits.h"
 #include "./core/memory.h"
