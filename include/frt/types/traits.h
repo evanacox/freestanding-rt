@@ -121,7 +121,7 @@ namespace frt::traits {
   template <typename T> inline constexpr bool is_bounded_array = false;
 
   // NOLINTNEXTLINE(modernize-avoid-c-arrays)
-  template <typename T, frt::size N> inline constexpr bool is_bounded_array<T[N]> = true;
+  template <typename T, frt::isize N> inline constexpr bool is_bounded_array<T[N]> = true;
 
   template <typename T> struct IsBoundedArrayTrait : public BoolConstant<is_bounded_array<T>> {};
 
@@ -175,7 +175,7 @@ namespace frt::traits {
   template <typename T> struct RemoveExtentTrait<T[]> { using type = T; };
 
   // NOLINTNEXTLINE(modernize-avoid-c-arrays)
-  template <typename T, frt::size N> struct RemoveExtentTrait<T[N]> { using type = T; };
+  template <typename T, frt::isize N> struct RemoveExtentTrait<T[N]> { using type = T; };
 
   template <typename T> using RemoveExtent = typename RemoveExtentTrait<T>::type;
 
@@ -185,7 +185,7 @@ namespace frt::traits {
   template <typename T> struct RemoveAllExtentsTrait<T[]> { using type = typename RemoveAllExtentsTrait<T>::type; };
 
   // NOLINTNEXTLINE(modernize-avoid-c-arrays)
-  template <typename T, frt::size N> struct RemoveAllExtentsTrait<T[N]> {
+  template <typename T, frt::isize N> struct RemoveAllExtentsTrait<T[N]> {
     using type = typename RemoveAllExtentsTrait<T>::type;
   };
 
@@ -421,7 +421,7 @@ namespace frt::traits {
   template <typename T> struct AddPointerTrait { using type = AddPointer<T>; };
 
   namespace internal {
-    template <frt::size N> struct AssociatedWChar;
+    template <frt::isize N> struct AssociatedWChar;
 
     template <> struct AssociatedWChar<8> { using type = frt::i8; };
 
@@ -703,31 +703,31 @@ namespace frt::traits {
   template <typename T, typename U> struct IsLayoutCompatible : BoolConstant<is_layout_compatible<T, U>> {};
 #endif
 
-  template <frt::size Len, frt::size Align> struct AlignedStorageTrait {
+  template <frt::isize Len, frt::isize Align> struct AlignedStorageTrait {
     struct type {                         // NOLINT(readability-identifier-naming)
       alignas(Align) frt::byte data[Len]; // NOLINT(modernize-avoid-c-arrays)
     };
   };
 
-  template <frt::size Len, frt::size Align> using AlignedStorage = typename AlignedStorageTrait<Len, Align>::type;
+  template <frt::isize Len, frt::isize Align> using AlignedStorage = typename AlignedStorageTrait<Len, Align>::type;
 
   template <typename T> using AlignedStorageFor = typename AlignedStorageTrait<sizeof(T), alignof(T)>::type;
 
   namespace internal {
-    template <frt::size... Values> struct TraitsMax;
+    template <frt::isize... Values> struct TraitsMax;
 
-    template <frt::size A, frt::size B, frt::size... Values> struct TraitsMax<A, B, Values...> {
-      inline static constexpr frt::size value =
+    template <frt::isize A, frt::isize B, frt::isize... Values> struct TraitsMax<A, B, Values...> {
+      inline static constexpr frt::isize value =
           (A > B) ? TraitsMax<A, Values...>::value : TraitsMax<B, Values...>::value;
     };
 
-    template <frt::size A> struct TraitsMax<A> { inline static constexpr frt::size value = A; };
+    template <frt::isize A> struct TraitsMax<A> { inline static constexpr frt::isize value = A; };
 
-    template <frt::size... Values> inline constexpr frt::size traits_max = TraitsMax<Values...>::value;
+    template <frt::isize... Values> inline constexpr frt::isize traits_max = TraitsMax<Values...>::value;
   } // namespace internal
 
-  template <frt::size Len, typename... Ts> struct AlignedUnionTrait {
-    inline static constexpr frt::size alignment_value = internal::traits_max<sizeof(Ts)...>;
+  template <frt::isize Len, typename... Ts> struct AlignedUnionTrait {
+    inline static constexpr frt::isize alignment_value = internal::traits_max<sizeof(Ts)...>;
 
     // NOLINTNEXTLINE(readability-identifier-naming)
     struct type {

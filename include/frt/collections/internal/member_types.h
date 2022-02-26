@@ -8,20 +8,18 @@
 //                                                                           //
 //======---------------------------------------------------------------======//
 
-#include "frt/runtime/failures.h"
+#pragma once
 
-#ifdef FRT_GENERATE_DEFAULT_TRIED_THROW
+#include "../../types/basic.h"
 
-void frt::__frt_tried_alloc(const char* /*unused*/, frt::CSourceLocation /*unused*/) noexcept {
-  __builtin_trap();
-}
-
-#endif
-
-#ifdef FRT_GENERATE_DEFAULT_BOUNDS_FAIL
-
-void frt::__frt_bounds_fail(const char* /*unused*/, frt::CSourceLocation /*unused*/) noexcept {
-  __builtin_trap();
-}
-
-#endif
+namespace frt::internal {
+  template <typename T> struct ContainerTypes {
+    using value_type = T;
+    using size_type = frt::isize;
+    using difference_type = size_type;
+    using reference = value_type&;
+    using const_reference = const value_type&;
+    using pointer = value_type*;
+    using const_pointer = const value_type*;
+  };
+} // namespace frt::internal

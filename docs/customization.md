@@ -16,8 +16,6 @@ of `std::__frt`.
 
 Any code generated that would interfere with global scope is namespaced with `__frt_`.
 
-##
-
 ## `<compare>` and `FRT_GENERATE_DEFAULT_STD_COMPARE`
 
 FRT uses three-way-comparison (`operator<=>`) internally very liberally, and thus needs to ensure that
@@ -73,7 +71,7 @@ situations like "stack allocator is exhausted but more memory was requested."
 The function has the following signature:
 
 ```cpp
-extern "C" [[noreturn]] void frt_tried_alloc(const char* /* non-null null-terminated message string */, 
+extern "C" [[noreturn]] void __frt_tried_alloc(const char* /* non-null null-terminated message string */, 
                                              frt::CSourceLocation) noexcept;
 ```
 
@@ -83,3 +81,22 @@ contains a call to `__builtin_trap`.
 If it is not defined, an implementation for the symbol must be provided at link-time.
 
 The constant `frt::generated_tried_alloc` can be queried at build time to see which mode the library is built in.
+
+## `__frt_bounds_fail` and `FRT_GENERATE_DEFAULT_BOUNDS_FAIL`
+
+`__frt_bounds_fail` is a library intrinsic called whenever the library is executing bounds-checked code and an
+out-of-bounds situation is encountered.
+
+The function has the following signature:
+
+```cpp
+extern "C" [[noreturn]] void __frt_bounds_fail(const char* /* non-null null-terminated message string */, 
+                                             frt::CSourceLocation) noexcept;
+```
+
+If `FRT_GENERATE_DEFAULT_BOUNDS_FAIL` is defined, FRT will generate a default implementation of this function that
+contains a call to `__builtin_trap`.
+
+If it is not defined, an implementation for the symbol must be provided at link-time.
+
+The constant `frt::generated_bounds_fail` can be queried at build time to see which mode the library is built in.

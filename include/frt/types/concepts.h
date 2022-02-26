@@ -189,7 +189,7 @@ namespace frt {
   /// \tparam T The first type to check
   /// \tparam U The second type to check
   template <typename T, typename U>
-  concept WeaklyEqualityComparableWith = requires(const traits::RemoveReference<T>& t,
+  concept __WeaklyEqualityComparableWith = requires(const traits::RemoveReference<T>& t,
       const traits::RemoveReference<U>& u) {
     { t == u } -> __BooleanTestable;
     { t != u } -> __BooleanTestable;
@@ -203,7 +203,7 @@ namespace frt {
   ///
   /// \tparam T The type to check
   template <typename T>
-  concept EqualityComparable = WeaklyEqualityComparableWith<T, T>;
+  concept EqualityComparable = __WeaklyEqualityComparableWith<T, T>;
 
   /// Specifies that comparing type `T` and `U` with equality operators (in either order)
   /// yield meaningful and consistent results as-if they were being compared after being converted to their common type
@@ -217,7 +217,7 @@ namespace frt {
       traits::AddLValueReference<const traits::RemoveReference<T>>,
       traits::AddLValueReference<const traits::RemoveReference<U>>> && EqualityComparable<traits::
           CommonReference<traits::AddLValueReference<const traits::RemoveReference<T>>,
-              traits::AddLValueReference<const traits::RemoveReference<U>>>> && WeaklyEqualityComparableWith<T, U>;
+              traits::AddLValueReference<const traits::RemoveReference<U>>>> && __WeaklyEqualityComparableWith<T, U>;
 
   /// Specifies that comparing type `T` and `U` with comparison operators (in either order)
   /// yield meaningful and consistent results
@@ -285,6 +285,14 @@ namespace frt {
     frt::swap(frt::forward<T>(lhs), frt::forward<U>(rhs));
     frt::swap(frt::forward<U>(rhs), frt::forward<T>(lhs));
   };
+
+  namespace traits {
+    template <typename T> inline constexpr bool is_swappable = Swappable<T>;
+
+    template <typename T>
+    inline constexpr bool is_nothrow_swappable =
+        Swappable<T>&& noexcept(frt::swap(traits::declval<T&>(), traits::declval<T&>()));
+  } // namespace traits
 
   /// Checks if an object is able to be moved (able to be move constructed, move assigned, and swapped).
   ///
@@ -363,4 +371,10 @@ namespace frt {
   /// \tparam U The second type for the relation
   template <typename R, typename T, typename U>
   concept EquivalenceRelation = Relation<R, T, U>;
+
+  /// Checks that a given type is not (possibly cv-qualified) void.
+  ///
+  /// \tparam T The type to check
+  template <typename T>
+  concept NonVoid = !traits::is_void<T>;
 } // namespace frt

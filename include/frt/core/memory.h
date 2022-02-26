@@ -73,7 +73,7 @@ namespace frt {
   /// \param from The source of the copy
   /// \param length The number of bytes to copy
   /// \return `to`
-  FRT_ALWAYS_INLINE void* mem_copy(void* to, const void* from, frt::size length) noexcept {
+  FRT_ALWAYS_INLINE void* mem_copy(void* __restrict to, const void* __restrict from, frt::isize length) noexcept {
     // enables better optimization based on the forced inlining & compiler knowledge
     // of what `memcopy` does, may be optimized out with a constant size
     return ::memcpy(to, from, static_cast<frt::usize>(length));
@@ -85,7 +85,7 @@ namespace frt {
   /// \param from The source of the move
   /// \param length The number of bytes to copy
   /// \return `to`
-  FRT_ALWAYS_INLINE void* mem_move(void* to, const void* from, frt::size length) noexcept {
+  FRT_ALWAYS_INLINE void* mem_move(void* to, const void* from, frt::isize length) noexcept {
     // enables better optimization based on the forced inlining & compiler knowledge
     // of what `memmove` does, may be optimized out with a constant size
     return ::memmove(to, from, static_cast<frt::usize>(length));
@@ -97,7 +97,7 @@ namespace frt {
   /// \param value The value to set to the range
   /// \param length The number of bytes to set
   /// \return `to`
-  FRT_ALWAYS_INLINE void* mem_set(void* to, frt::byte value, frt::size length) noexcept {
+  FRT_ALWAYS_INLINE void* mem_set(void* to, frt::byte value, frt::isize length) noexcept {
     // enables better optimization based on the forced inlining & compiler knowledge
     // of what `memset` does, may be optimized out with a constant size
     return ::memset(to, static_cast<int>(value), static_cast<frt::usize>(length));
@@ -110,7 +110,7 @@ namespace frt {
   /// \param length The number of bytes to compare
   /// \return `0` if equal, negative if first different byte is less-than in `lhs`, positive if first different byte
   /// is greater-than in `lhs`
-  FRT_ALWAYS_INLINE int mem_compare(const void* lhs, const void* rhs, frt::size length) noexcept {
+  FRT_ALWAYS_INLINE int mem_compare(const void* lhs, const void* rhs, frt::isize length) noexcept {
     // enables better optimization based on the forced inlining & compiler knowledge
     // of what `memcmp` does, may be optimized out with a constant size
     return ::memcmp(lhs, rhs, static_cast<frt::usize>(length));

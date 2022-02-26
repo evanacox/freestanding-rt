@@ -8,20 +8,22 @@
 //                                                                           //
 //======---------------------------------------------------------------======//
 
-#include "frt/runtime/failures.h"
+#pragma once
 
-#ifdef FRT_GENERATE_DEFAULT_TRIED_THROW
+namespace frt {
+  struct InputIteratorTag {};
+  struct ForwardIteratorTag : InputIteratorTag {};
+  struct BidirectionalIteratorTag : ForwardIteratorTag {};
+  struct RandomIteratorTag : BidirectionalIteratorTag {};
+  struct ContiguousIteratorTag : RandomIteratorTag {};
+  struct OutputIteratorTag {};
 
-void frt::__frt_tried_alloc(const char* /*unused*/, frt::CSourceLocation /*unused*/) noexcept {
-  __builtin_trap();
-}
-
-#endif
-
-#ifdef FRT_GENERATE_DEFAULT_BOUNDS_FAIL
-
-void frt::__frt_bounds_fail(const char* /*unused*/, frt::CSourceLocation /*unused*/) noexcept {
-  __builtin_trap();
-}
-
-#endif
+  namespace internal {
+    using InputTag = InputIteratorTag;
+    using ForwardTag = ForwardIteratorTag;
+    using BidirectionTag = BidirectionalIteratorTag;
+    using RandomTag = RandomIteratorTag;
+    using ContiguousTag = ContiguousIteratorTag;
+    using OutputTag = OutputIteratorTag;
+  } // namespace internal
+} // namespace frt

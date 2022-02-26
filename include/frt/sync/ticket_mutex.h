@@ -10,8 +10,8 @@
 
 #pragma once
 
-#include "./atomic.h"
 #include "../types/basic.h"
+#include "./atomic.h"
 
 namespace frt {
   /// Models a fair mutex using a "ticket" system. See https://en.wikipedia.org/wiki/Ticket_lock
@@ -35,7 +35,7 @@ namespace frt {
     void unlock() noexcept;
 
   private:
-    Atomic<frt::size> count_;
-    Atomic<frt::size> current_;
+    Atomic<frt::isize> count_;
+    Atomic<frt::isize> current_;
   };
-}
+} // namespace frt

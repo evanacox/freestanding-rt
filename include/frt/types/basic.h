@@ -29,7 +29,7 @@ namespace frt {
           && CHAR_BIT == 8,                               // 8-bit bytes are an implicit assumption
       "frt: platform needs to be reasonable");
 
-  using size = intptr_t;
+  using isize = intptr_t;
 
   using usize = uintptr_t;
 

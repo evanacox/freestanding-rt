@@ -8,20 +8,11 @@
 //                                                                           //
 //======---------------------------------------------------------------======//
 
-#include "frt/runtime/failures.h"
+#pragma once
 
-#ifdef FRT_GENERATE_DEFAULT_TRIED_THROW
-
-void frt::__frt_tried_alloc(const char* /*unused*/, frt::CSourceLocation /*unused*/) noexcept {
-  __builtin_trap();
-}
-
-#endif
-
-#ifdef FRT_GENERATE_DEFAULT_BOUNDS_FAIL
-
-void frt::__frt_bounds_fail(const char* /*unused*/, frt::CSourceLocation /*unused*/) noexcept {
-  __builtin_trap();
-}
-
-#endif
+#include "./iterators/adapters.h"
+#include "./iterators/concepts.h"
+#include "./iterators/iter_base.h"
+#include "./iterators/operations.h"
+#include "./iterators/tags.h"
+#include "./iterators/traits.h"

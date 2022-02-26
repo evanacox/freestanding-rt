@@ -17,7 +17,7 @@
 
 namespace frt {
   namespace internal {
-    template <typename P, typename D = void> struct PointerTraitsDiffType { using type = frt::size; };
+    template <typename P, typename D = void> struct PointerTraitsDiffType { using type = frt::isize; };
 
     template <typename P> struct PointerTraitsDiffType<P, traits::Void<typename P::difference_type>> {
       using type = typename P::difference_type;
@@ -94,7 +94,7 @@ namespace frt {
     using element_type = T;
 
     /// The difference type of the pointer
-    using difference_type = frt::size;
+    using difference_type = frt::isize;
 
     /// Rebinds the fancy pointer type to type `U`
     template <typename U> using rebind = U*;
