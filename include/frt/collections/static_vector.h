@@ -10,12 +10,28 @@
 
 #pragma once
 
-#include "./core/allocator.h"
-#include "./core/allocators.h"
-#include "./core/bit.h"
-#include "./core/iterators.h"
-#include "./core/limits.h"
-#include "./core/memory.h"
-#include "./core/numeric.h"
-#include "./core/pointers.h"
-#include "./core/bump_alloc.h"
+#include "../types/basic.h"
+#include "../types/traits.h"
+
+namespace frt {
+  template <typename T, frt::size N> class StaticVector {
+  public:
+    explicit StaticVector() = default;
+
+    constexpr T& push_back(T& value) noexcept;
+
+    constexpr T& push_back(T&& value) noexcept;
+
+    [[nodiscard]] constexpr frt::size size() const noexcept {
+      return size_;
+    }
+
+    [[nodiscard]] constexpr frt::size capacity() const noexcept {
+      return N;
+    }
+
+  private:
+    frt::size size_;
+    alignas(T) frt::byte storage_[N * sizeof(T)] = {0}; // NOLINT(modernize-avoid-c-arrays)
+  };
+} // namespace frt
