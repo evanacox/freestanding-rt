@@ -12,6 +12,9 @@
 
 namespace {
   template <bool SpinHint> void spin_until_locked(frt::AtomicFlag* flag) noexcept {
+    // our goal here is to prevent refreshing caches on potentially contended locks
+    // when multiple threads are going for it. therefore, we need to reduce writes to
+    // a bare minimum.
     while (true) {
       // might as well check first, if the lock isn't taken we get to it with 1 less load
       // and if it isn't, we aren't in any hurry to get into the test loop anyway

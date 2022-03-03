@@ -12,6 +12,7 @@
 
 #include "../../collections/array.h"
 #include "../../types/basic.h"
+#include "../../types/traits.h"
 #include "../allocator.h"
 
 namespace frt {
