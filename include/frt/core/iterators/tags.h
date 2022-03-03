@@ -10,13 +10,26 @@
 
 #pragma once
 
+#ifdef FRT_HAVE_STDLIB
+#include <iterator>
+#endif
+
 namespace frt {
+#ifdef FRT_HAVE_STDLIB
+  using InputIteratorTag = std::input_iterator_tag;
+  using ForwardIteratorTag = std::forward_iterator_tag;
+  using BidirectionalIteratorTag = std::bidirectional_iterator_tag;
+  using RandomIteratorTag = std::random_access_iterator_tag;
+  using ContiguousIteratorTag = std::contiguous_iterator_tag;
+  using OutputIteratorTag = std::output_iterator_tag;
+#else
   struct InputIteratorTag {};
   struct ForwardIteratorTag : InputIteratorTag {};
   struct BidirectionalIteratorTag : ForwardIteratorTag {};
   struct RandomIteratorTag : BidirectionalIteratorTag {};
   struct ContiguousIteratorTag : RandomIteratorTag {};
   struct OutputIteratorTag {};
+#endif
 
   namespace internal {
     using InputTag = InputIteratorTag;

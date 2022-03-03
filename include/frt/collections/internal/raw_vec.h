@@ -10,16 +10,18 @@
 
 #pragma once
 
-#include "../../collections/array.h"
-#include "../../types/basic.h"
-#include "../allocator.h"
+#include "./member_types.h"
 
-namespace frt {
-  template <typename T, frt::usize Bytes> class StackAllocator {
+namespace frt::internal {
+  template <typename T, typename Traits> class RawVec {
+    using Alloc = typename Traits::Allocator;
+
   public:
-    explicit StackAllocator() = default;
+    constexpr explicit RawVec() = default;
 
   private:
-    alignas(T) frt::Array<frt::byte, Bytes> storage_;
+    [[no_unique_address]] Alloc alloc_;
   };
-} // namespace frt
+} // namespace frt::internal
+
+void f() {}

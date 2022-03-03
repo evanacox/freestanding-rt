@@ -15,6 +15,11 @@
 #include "../utility/swap.h"
 #include "./bit.h"
 
+#ifdef FRT_HAVE_STDLIB
+#include <numeric>
+#include <version>
+#endif
+
 namespace frt {
   /// Computes the absolute value of an integral value
   ///
@@ -95,11 +100,16 @@ namespace frt {
   /// \return The GCD between the two integers
   template <Integral T, Integral U> constexpr traits::CommonType<T, U> gcd(T x, U y) noexcept {
     static_assert(!OneOf<bool, T, U>, "cannot find the gcd between two booleans!");
+
+#if defined(FRT_HAVE_STDLIB) && __cpp_lib_gcd_lcm >= 201606L
+    return std::gcd(x, y);
+#else
     using Result = traits::MakeUnsigned<traits::CommonType<T, U>>;
 
     return (x == 0)   ? y // gcd(0, y) = y and gcd(x, 0) = x
            : (y == 0) ? x
                       : internal::gcd_stein(frt::abs<Result>(x), frt::abs<Result>(y));
+#endif
   }
 
   /// Calculates the least common multiple for two integers
@@ -109,8 +119,13 @@ namespace frt {
   /// \return The least common multiple for the two integers
   template <Integral T, Integral U> constexpr traits::CommonType<T, U> lcm(T x, U y) noexcept {
     static_assert(!OneOf<bool, T, U>, "cannot find the gcd between two booleans!");
+
+#if defined(FRT_HAVE_STDLIB) && __cpp_lib_gcd_lcm >= 201606L
+    return std::lcm(x, y);
+#else
     using Result = traits::MakeUnsigned<traits::CommonType<T, U>>;
 
     return (x == 0 || y == 0) ? 0 : internal::lcm(frt::abs<Result>(x), frt::abs<Result>(y));
+#endif
   }
 } // namespace frt

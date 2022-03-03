@@ -9,6 +9,13 @@ FRT also provides a way to override/customize those intrinsic types and function
 > Note: Some of the following is technically "UB" from opening up `std` and using reserved symbols. I argue that it's not
 > actually UB, due to the fact that this library plays the role of an "implementation" where `std` doesn't exist :)
 
+## Building With `std`
+
+If you have a standard library implementation present, FRT can work with it.
+
+Define `FRT_HAVE_STDLIB`, and FRT will try to include C++ standard headers and use the types / functions within. Parts
+of the library that are simply re-implementations of the stdlib will 'melt away' into wrappers.
+
 ## Namespacing
 
 Any code generated inside of `std` that is not directly implementing part of the `std` interface is placed inside

@@ -10,28 +10,34 @@
 
 #pragma once
 
+#include "../core/limits.h"
 #include "../types/basic.h"
 #include "../types/traits.h"
+#include "./internal/raw_vec.h"
 
 namespace frt {
-  template <typename T, frt::size N> class StaticVector {
+  template <typename T, frt::usize N> class StaticVec {
   public:
-    explicit StaticVector() = default;
+    explicit StaticVec() = default;
 
     constexpr T& push_back(T& value) noexcept;
 
     constexpr T& push_back(T&& value) noexcept;
 
-    [[nodiscard]] constexpr frt::size size() const noexcept {
+    [[nodiscard]] constexpr frt::isize size() const noexcept {
       return size_;
     }
 
-    [[nodiscard]] constexpr frt::size capacity() const noexcept {
+    [[nodiscard]] constexpr frt::isize capacity() const noexcept {
       return N;
     }
 
+    [[nodiscard]] constexpr frt::isize max_size() const noexcept {
+      return NumericLimits<frt::isize>::max;
+    }
+
   private:
-    frt::size size_;
+    frt::isize size_ = 0;
     alignas(T) frt::byte storage_[N * sizeof(T)] = {0}; // NOLINT(modernize-avoid-c-arrays)
   };
 } // namespace frt

@@ -13,6 +13,11 @@
 #include "../platform/macros.h"
 #include "../types/basic.h"
 
+#ifdef FRT_HAVE_STDLIB
+#include <memory>
+#include <version>
+#endif
+
 extern "C" {
   void* memcpy(void* __restrict to, const void* __restrict from, frt::usize length) noexcept;
 
@@ -127,9 +132,13 @@ namespace frt {
   /// \param object The object to get the address of
   /// \return A pointer to `object`
   template <typename T> [[nodiscard]] FRT_ALWAYS_INLINE constexpr T* address_of(T& object) noexcept {
+#if defined(FRT_HAVE_STDLIB) && __cpp_lib_addressof_constexpr >= 201603L
+    return std::addressof(object);
+#else
     // we can either do it in a `constexpr`-compatible way, or we can do it in a standard way
     // since we use builtins everywhere else, I say we do it the `constexpr` way
     return __builtin_addressof(object);
+#endif
   }
 
   /// Deleted overload to prevent taking address of temporaries

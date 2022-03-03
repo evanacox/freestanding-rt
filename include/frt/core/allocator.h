@@ -128,6 +128,15 @@ namespace frt {
       { a.deallocate(p, n) } noexcept;
       // clang-format on
     };
+
+    template <typename A>
+    concept HasStateful = requires {
+      { A::is_stateful } -> SameAs<bool>;
+    };
+
+    template <typename A> inline constexpr bool is_stateful = false;
+
+    template <HasStateful A> inline constexpr bool is_stateful<A> = A::is_stateful;
   } // namespace internal
 
   /// A concept that models allocators for the FRT library. However, these are not
@@ -149,5 +158,38 @@ namespace frt {
     typename internal::AllocConstVoidPtr<A>;
     typename internal::AllocSize<A>;
     typename internal::AllocRebind<A, internal::EmptyTestTypeU>;
+    { internal::is_stateful<A> } -> SameAs<bool>;
   };
+
+  template <Allocator A> struct AllocatorTraits {
+    using allocator_type = A;
+    using value_type = internal::AllocValue<A>;
+    using pointer = internal::AllocPtr<A>;
+    using const_pointer = internal::AllocConstPtr<A>;
+    using void_pointer = internal::AllocVoidPtr<A>;
+    using const_void_pointer = internal::AllocConstVoidPtr<A>;
+    using difference_type = internal::AllocDiff<A>;
+    using size_type = difference_type;
+
+    template <typename T> using rebind_alloc = internal::AllocRebind<A, T>;
+
+    template <typename T> using rebind_traits = AllocatorTraits<rebind_alloc<T>>;
+
+    [[nodiscard]] static constexpr pointer allocate(allocator_type& alloc, size_type n) noexcept {
+      return alloc.allocate(n);
+    }
+
+    [[nodiscard]] static constexpr pointer allocate(allocator_type& alloc,
+        size_type n,
+        const_void_pointer /*unused*/) noexcept {
+      return alloc.allocate(n);
+    }
+
+    static constexpr pointer deallocate(allocator_type& alloc, pointer storage, size_type n) noexcept {
+      return alloc.deallocate(storage, n);
+    }
+
+    inline static constexpr bool is_stateful = internal::is_stateful<A>;
+  };
+
 } // namespace frt

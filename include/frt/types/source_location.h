@@ -59,8 +59,8 @@ namespace frt {
     }
 
   private:
-    const char* file_ = "";
-    const char* func_ = "";
+    const char* file_ = "<unknown>";
+    const char* func_ = "<unknown>";
     frt::i32 line_ = -1;
   };
 
