@@ -11,6 +11,7 @@
 #pragma once
 
 #include "../../platform/compare.h"
+#include "../../platform/macros.h"
 #include "../../types/concepts.h"
 #include "../../types/traits.h"
 #include "./concepts.h"
@@ -26,19 +27,19 @@ namespace frt {
     template <typename Derived, typename Value, typename Reference, typename Pointer, typename DiffType>
     class IteratorInterfaceBase<Derived, internal::OutputTag, Value, Reference, Pointer, DiffType> {
     protected:
-      constexpr OutputIteratorReady<Reference, Pointer, DiffType> auto& self() noexcept {
+      FRT_ALWAYS_INLINE constexpr OutputIteratorReady<Reference, Pointer, DiffType> auto& self() noexcept {
         return *static_cast<Derived*>(this);
       }
 
-      constexpr const OutputIteratorReady<Reference, Pointer, DiffType> auto& self() const noexcept {
+      FRT_ALWAYS_INLINE constexpr const OutputIteratorReady<Reference, Pointer, DiffType> auto& self() const noexcept {
         return *static_cast<const Derived*>(this);
       }
 
-      constexpr decltype(auto) value() const noexcept(noexcept(self().value())) {
+      FRT_ALWAYS_INLINE constexpr decltype(auto) value() const noexcept(noexcept(self().value())) {
         return self().value();
       }
 
-      constexpr void next() noexcept(noexcept(self().next())) {
+      FRT_ALWAYS_INLINE constexpr void next() noexcept(noexcept(self().next())) {
         self().next();
       }
     };
@@ -46,19 +47,19 @@ namespace frt {
     template <typename Derived, typename Value, typename Reference, typename Pointer, typename DiffType>
     class IteratorInterfaceBase<Derived, internal::InputTag, Value, Reference, Pointer, DiffType> {
     protected:
-      constexpr InputIteratorReady<Reference, Pointer, DiffType> auto& self() noexcept {
+      FRT_ALWAYS_INLINE constexpr InputIteratorReady<Reference, Pointer, DiffType> auto& self() noexcept {
         return *static_cast<Derived*>(this);
       }
 
-      constexpr const InputIteratorReady<Reference, Pointer, DiffType> auto& self() const noexcept {
+      FRT_ALWAYS_INLINE constexpr const InputIteratorReady<Reference, Pointer, DiffType> auto& self() const noexcept {
         return *static_cast<const Derived*>(this);
       }
 
-      constexpr decltype(auto) value() const noexcept(noexcept(self().value())) {
+      FRT_ALWAYS_INLINE constexpr decltype(auto) value() const noexcept(noexcept(self().value())) {
         return self().value();
       }
 
-      constexpr void next() noexcept(noexcept(self().next())) {
+      FRT_ALWAYS_INLINE constexpr void next() noexcept(noexcept(self().next())) {
         self().next();
       }
     };
@@ -66,19 +67,19 @@ namespace frt {
     template <typename Derived, typename Value, typename Reference, typename Pointer, typename DiffType>
     class IteratorInterfaceBase<Derived, internal::ForwardTag, Value, Reference, Pointer, DiffType> {
     protected:
-      constexpr ForwardIteratorReady<Reference, Pointer, DiffType> auto& self() noexcept {
+      FRT_ALWAYS_INLINE constexpr ForwardIteratorReady<Reference, Pointer, DiffType> auto& self() noexcept {
         return *static_cast<Derived*>(this);
       }
 
-      constexpr const ForwardIteratorReady<Reference, Pointer, DiffType> auto& self() const noexcept {
+      FRT_ALWAYS_INLINE constexpr const ForwardIteratorReady<Reference, Pointer, DiffType> auto& self() const noexcept {
         return *static_cast<const Derived*>(this);
       }
 
-      constexpr decltype(auto) value() const noexcept(noexcept(self().value())) {
+      FRT_ALWAYS_INLINE constexpr decltype(auto) value() const noexcept(noexcept(self().value())) {
         return self().value();
       }
 
-      constexpr void next() noexcept(noexcept(self().next())) {
+      FRT_ALWAYS_INLINE constexpr void next() noexcept(noexcept(self().next())) {
         self().next();
       }
     };
@@ -86,23 +87,24 @@ namespace frt {
     template <typename Derived, typename Value, typename Reference, typename Pointer, typename DiffType>
     class IteratorInterfaceBase<Derived, internal::BidirectionTag, Value, Reference, Pointer, DiffType> {
     protected:
-      constexpr BidirectionalIteratorReady<Reference, Pointer, DiffType> auto& self() noexcept {
+      FRT_ALWAYS_INLINE constexpr BidirectionalIteratorReady<Reference, Pointer, DiffType> auto& self() noexcept {
         return *static_cast<Derived*>(this);
       }
 
-      constexpr const BidirectionalIteratorReady<Reference, Pointer, DiffType> auto& self() const noexcept {
+      FRT_ALWAYS_INLINE constexpr const BidirectionalIteratorReady<Reference, Pointer, DiffType> auto& self()
+          const noexcept {
         return *static_cast<const Derived*>(this);
       }
 
-      constexpr decltype(auto) value() const noexcept(noexcept(self().value())) {
+      FRT_ALWAYS_INLINE constexpr decltype(auto) value() const noexcept(noexcept(self().value())) {
         return self().value();
       }
 
-      constexpr void next() noexcept(noexcept(self().next())) {
+      FRT_ALWAYS_INLINE constexpr void next() noexcept(noexcept(self().next())) {
         self().next();
       }
 
-      constexpr void prev() noexcept(noexcept(self().prev())) {
+      FRT_ALWAYS_INLINE constexpr void prev() noexcept(noexcept(self().prev())) {
         self().prev();
       }
     };
@@ -110,31 +112,33 @@ namespace frt {
     template <typename Derived, typename Value, typename Reference, typename Pointer, typename DiffType>
     class IteratorInterfaceBase<Derived, internal::RandomTag, Value, Reference, Pointer, DiffType> {
     protected:
-      constexpr RandomAccessIteratorReady<Reference, Pointer, DiffType> auto& self() noexcept {
+      FRT_ALWAYS_INLINE constexpr RandomAccessIteratorReady<Reference, Pointer, DiffType> auto& self() noexcept {
         return *static_cast<Derived*>(this);
       }
 
-      constexpr const RandomAccessIteratorReady<Reference, Pointer, DiffType> auto& self() const noexcept {
+      FRT_ALWAYS_INLINE constexpr const RandomAccessIteratorReady<Reference, Pointer, DiffType> auto& self()
+          const noexcept {
         return *static_cast<const Derived*>(this);
       }
 
-      constexpr decltype(auto) value() const noexcept(noexcept(self().value())) {
+      FRT_ALWAYS_INLINE constexpr decltype(auto) value() const noexcept(noexcept(self().value())) {
         return self().value();
       }
 
-      constexpr void move(DiffType n) noexcept(noexcept(self().move(n))) {
+      FRT_ALWAYS_INLINE constexpr void move(DiffType n) noexcept(noexcept(self().move(n))) {
         self().move(n);
       }
 
-      constexpr void next() noexcept(noexcept(move(1))) {
+      FRT_ALWAYS_INLINE constexpr void next() noexcept(noexcept(move(1))) {
         move(1);
       }
 
-      constexpr void prev() noexcept(noexcept(move(-1))) {
+      FRT_ALWAYS_INLINE constexpr void prev() noexcept(noexcept(move(-1))) {
         move(-1);
       }
 
-      constexpr DiffType distance_to(const Derived& other) noexcept(noexcept(self().distance_to(other))) {
+      FRT_ALWAYS_INLINE constexpr DiffType distance_to(const Derived& other) noexcept(
+          noexcept(self().distance_to(other))) {
         return self().distance_to(other);
       }
     };
@@ -146,15 +150,16 @@ namespace frt {
         { d.value() } -> SameAs<Reference>;
       };
 
-      constexpr ContiguousIteratorReady<Pointer, DiffType> auto& self() noexcept {
+      FRT_ALWAYS_INLINE constexpr ContiguousIteratorReady<Pointer, DiffType> auto& self() noexcept {
         return *static_cast<Derived*>(this);
       }
 
-      constexpr const ContiguousIteratorReady<Pointer, DiffType> auto& self() const noexcept {
+      FRT_ALWAYS_INLINE constexpr const ContiguousIteratorReady<Pointer, DiffType> auto& self() const noexcept {
         return *static_cast<const Derived*>(this);
       }
 
-      constexpr decltype(auto) value() const noexcept {
+      FRT_ALWAYS_INLINE constexpr decltype(auto) value() const
+          noexcept(has_value ? noexcept(self().value()) : noexcept(*(self().address()))) {
         if constexpr (has_value) {
           return self().value();
         } else {
@@ -162,23 +167,24 @@ namespace frt {
         }
       }
 
-      constexpr decltype(auto) address() const noexcept {
+      FRT_ALWAYS_INLINE constexpr decltype(auto) address() const noexcept(noexcept(self().address())) {
         return self().address();
       }
 
-      constexpr void move(DiffType n) noexcept {
+      FRT_ALWAYS_INLINE constexpr void move(DiffType n) noexcept(noexcept(self().move(n))) {
         self().move(n);
       }
 
-      constexpr void next() noexcept {
+      FRT_ALWAYS_INLINE constexpr void next() noexcept(noexcept(move(1))) {
         move(1);
       }
 
-      constexpr void prev() noexcept {
+      FRT_ALWAYS_INLINE constexpr void prev() noexcept(noexcept(move(-1))) {
         move(-1);
       }
 
-      constexpr DiffType distance_to(const Derived& other) noexcept(noexcept(self().distance_to(other))) {
+      FRT_ALWAYS_INLINE constexpr DiffType distance_to(const Derived& other) noexcept(
+          noexcept(self().distance_to(other))) {
         return self().distance_to(other);
       }
     };
@@ -201,14 +207,15 @@ namespace frt {
       /// Gets the current value of the iterator
       ///
       /// \return A reference to the current value
-      typename Base::reference operator*() const noexcept(noexcept(traits::declval<Derived>().value())) {
+      FRT_ALWAYS_INLINE constexpr typename Base::reference operator*() const
+          noexcept(noexcept(traits::declval<Derived>().value())) {
         return Base::value();
       }
 
       /// Moves to the next value
       ///
       /// \return A reference to *this
-      Derived& operator++() noexcept(noexcept(traits::declval<Derived>().next())) {
+      FRT_ALWAYS_INLINE constexpr Derived& operator++() noexcept(noexcept(traits::declval<Derived>().next())) {
         Base::next();
 
         return Base::self();
@@ -218,7 +225,7 @@ namespace frt {
       ///
       /// \tparam Hidden Used for Concepts
       template <typename Hidden = Derived>
-      constexpr void operator++(int) noexcept(noexcept(traits::declval<Derived>().next())) requires(
+      FRT_ALWAYS_INLINE constexpr void operator++(int) noexcept(noexcept(traits::declval<Derived>().next())) requires(
           !CopyConstructible<Hidden>) {
         Base::next();
       }
@@ -228,7 +235,7 @@ namespace frt {
       /// \tparam Hidden Used for Concepts
       /// \return A copy of the iterator from before ++
       template <typename Hidden = Derived>
-      [[nodiscard]] constexpr Derived operator++(int) noexcept(
+      [[nodiscard]] FRT_ALWAYS_INLINE constexpr Derived operator++(int) noexcept(
           noexcept(traits::declval<Derived>().next())
           && traits::is_nothrow_copy_constructible<Derived>) requires CopyConstructible<Hidden> {
         auto copy = Base::self();
@@ -240,12 +247,13 @@ namespace frt {
       /// against `strong_ordering::equal`
       ///
       /// \param other The other to compare against
-      /// \return `lhs.eq(rhs)` or `lhs.cmp(rhs) == std::strong_ordering::equal`
-      [[nodiscard]] friend constexpr bool operator==(const Derived& lhs, const Derived& rhs) noexcept {
+      /// \return `lhs.eq(rhs)` or `lhs.cmp(rhs) == frt::StrongOrder::equal`
+      [[nodiscard]] FRT_ALWAYS_INLINE friend constexpr bool operator==(const Derived& lhs,
+          const Derived& rhs) noexcept {
         if constexpr (internal::HasEq<Derived>) {
           return lhs.eq(rhs);
         } else {
-          return lhs.cmp(rhs) == std::strong_ordering::equal;
+          return lhs.cmp(rhs) == frt::StrongOrder::equal;
         }
       }
 
@@ -257,14 +265,14 @@ namespace frt {
     class ForwardIteratorBase : public InputIteratorBase<Derived, Type, Value, Reference, Pointer, DiffType> {};
 
     template <typename Derived, typename Type, typename Value, typename Reference, typename Pointer, typename DiffType>
-    class BidirectionIteratorBase : public ForwardIteratorBase<Derived, Type, Value, Reference, Pointer, DiffType> {
+    class BidirectionalIteratorBase : public ForwardIteratorBase<Derived, Type, Value, Reference, Pointer, DiffType> {
       using Base = ForwardIteratorBase<Derived, Type, Value, Reference, Pointer, DiffType>;
 
     public:
       /// Moves the iterator backwards one element
       ///
       /// \return A reference to the current iterator
-      constexpr Derived& operator--() noexcept(noexcept(traits::declval<Derived>().prev())) {
+      FRT_ALWAYS_INLINE constexpr Derived& operator--() noexcept(noexcept(traits::declval<Derived>().prev())) {
         Base::prev();
 
         return Base::self();
@@ -274,7 +282,7 @@ namespace frt {
       /// pre-decrement value
       ///
       /// \return A copy of the iterator from before `--` was called
-      constexpr Derived operator--(int) noexcept(
+      FRT_ALWAYS_INLINE constexpr Derived operator--(int) noexcept(
           noexcept(traits::declval<Derived>().prev()) && traits::is_nothrow_copy_constructible<Derived>) {
         auto copy = Base::self();
         Base::prev();
@@ -284,8 +292,8 @@ namespace frt {
 
     template <typename Derived, typename Type, typename Value, typename Reference, typename Pointer, typename DiffType>
     class RandomAccessIteratorBase
-        : public BidirectionIteratorBase<Derived, Type, Value, Reference, Pointer, DiffType> {
-      using Base = BidirectionIteratorBase<Derived, Type, Value, Reference, Pointer, DiffType>;
+        : public BidirectionalIteratorBase<Derived, Type, Value, Reference, Pointer, DiffType> {
+      using Base = BidirectionalIteratorBase<Derived, Type, Value, Reference, Pointer, DiffType>;
 
     public:
       using OpalRandomAccessIteratorTag = void;
@@ -294,7 +302,8 @@ namespace frt {
       ///
       /// \param n The number of elements to move forward in the iterator
       /// \return A reference to self
-      constexpr Derived& operator+=(DiffType n) noexcept(noexcept(traits::declval<Derived>().move(n))) {
+      FRT_ALWAYS_INLINE constexpr Derived& operator+=(DiffType n) noexcept(
+          noexcept(traits::declval<Derived>().move(n))) {
         Base::move(n);
 
         return Base::self();
@@ -304,7 +313,7 @@ namespace frt {
       ///
       /// \param n The number of elements to move forward in the new iterator
       /// \return A new iterator
-      [[nodiscard]] constexpr Derived operator+(DiffType n) const
+      [[nodiscard]] FRT_ALWAYS_INLINE constexpr Derived operator+(DiffType n) const
           noexcept(noexcept(traits::declval<Derived>().move(n))) {
         auto copy = Base::self();
         copy.move(n);
@@ -315,7 +324,8 @@ namespace frt {
       ///
       /// \param n The number of elements to move backward in the iterator
       /// \return A reference to self
-      constexpr Derived& operator-=(DiffType n) noexcept(noexcept(traits::declval<Derived>().move(n))) {
+      FRT_ALWAYS_INLINE constexpr Derived& operator-=(DiffType n) noexcept(
+          noexcept(traits::declval<Derived>().move(n))) {
         Base::move(-n);
 
         return Base::self();
@@ -325,7 +335,7 @@ namespace frt {
       ///
       /// \param n The number of elements to move backward in the new iterator
       /// \return A new iterator
-      [[nodiscard]] constexpr Derived operator-(DiffType n) const
+      [[nodiscard]] FRT_ALWAYS_INLINE constexpr Derived operator-(DiffType n) const
           noexcept(noexcept(traits::declval<Derived>().move(n))) {
         auto copy = Base::self();
         copy.move(-n);
@@ -336,7 +346,7 @@ namespace frt {
       ///
       /// \param other The other iterator to compute distance with. Assumed to be **before** `*this`.
       /// \return A new iterator
-      [[nodiscard]] constexpr DiffType operator-(const Derived& other) const
+      [[nodiscard]] FRT_ALWAYS_INLINE constexpr DiffType operator-(const Derived& other) const
           noexcept(noexcept(other.distance_to(this->self()))) {
         return other.distance_to(Base::self());
       }
@@ -345,7 +355,7 @@ namespace frt {
       ///
       /// \param n The number of elements to move forward/backward
       /// \return The result of `*(*this + n)`
-      [[nodiscard]] constexpr Reference operator[](DiffType n) const
+      [[nodiscard]] FRT_ALWAYS_INLINE constexpr Reference operator[](DiffType n) const
           noexcept(noexcept(traits::declval<Derived>().move(n)) && noexcept(traits::declval<Derived>().value())
                    && traits::is_nothrow_copy_constructible<Derived>) {
         return *(Base::self() + n);
@@ -355,8 +365,8 @@ namespace frt {
       ///
       /// \param other The other iterator to compare
       /// \return The result of `lhs.cmp(rhs)`.
-      [[nodiscard]] friend constexpr std::strong_ordering operator<=>(const Derived& lhs, const Derived& rhs) noexcept(
-          noexcept(lhs.cmp(rhs))) {
+      [[nodiscard]] FRT_ALWAYS_INLINE friend constexpr frt::StrongOrder operator<=>(const Derived& lhs,
+          const Derived& rhs) noexcept(noexcept(lhs.cmp(rhs))) {
         return lhs.cmp(rhs);
       }
     };
@@ -372,8 +382,8 @@ namespace frt {
     /// \param iter The iter to move forward `n`
     /// \return A new iterator
     template <typename I>
-    [[nodiscard]] constexpr I operator+(IterDifference<I> n, const I& iter) noexcept(noexcept(iter + n)) requires(
-        RandomAccessIteratorReady<I, IterReference<I>, typename I::pointer, IterDifference<I>>) {
+    [[nodiscard]] FRT_ALWAYS_INLINE constexpr I operator+(IterDifference<I> n, const I& iter) noexcept(noexcept(
+        iter + n)) requires(RandomAccessIteratorReady<I, IterReference<I>, typename I::pointer, IterDifference<I>>) {
       return iter + n;
     }
 
@@ -384,13 +394,14 @@ namespace frt {
     public:
       // see https://gcc.gnu.org/bugzilla/show_bug.cgi?id=96416
       //
-      // seems to be a defect in the standard with regards to `std::to_address`
+      // seems to be a defect in the standard in regard to `std::to_address`
       using element_type = typename Base::value_type;
 
       /// Gets a pointer to the contiguous storage for `std::to_address`
       ///
       /// \return
-      [[nodiscard]] Pointer operator->() const noexcept(noexcept(traits::declval<Derived>().address())) {
+      [[nodiscard]] FRT_ALWAYS_INLINE Pointer operator->() const
+          noexcept(noexcept(traits::declval<Derived>().address())) {
         return Base::address();
       }
     };
@@ -411,7 +422,7 @@ namespace frt {
 
     template <typename Derived, typename Value, typename Reference, typename Pointer, typename DiffType>
     class IteratorInterfaceDifferentiator<Derived, internal::BidirectionTag, Value, Reference, Pointer, DiffType>
-        : public BidirectionIteratorBase<Derived, internal::BidirectionTag, Value, Reference, Pointer, DiffType> {};
+        : public BidirectionalIteratorBase<Derived, internal::BidirectionTag, Value, Reference, Pointer, DiffType> {};
 
     template <typename Derived, typename Value, typename Reference, typename Pointer, typename DiffType>
     class IteratorInterfaceDifferentiator<Derived, internal::RandomTag, Value, Reference, Pointer, DiffType>
@@ -464,3 +475,11 @@ namespace frt {
       typename DiffType = frt::isize>
   using ProxyIteratorInterface = IteratorInterface<Derived, Type, Value, Reference, Reference*, DiffType>;
 } // namespace frt
+
+#define FRT_USING_ITERATOR_TYPES(Base)                                                                                 \
+  using value_type = typename Base::value_type;                                                                        \
+  using difference_type = typename Base::difference_type;                                                              \
+  using size_type = typename Base::size_type;                                                                          \
+  using reference = typename Base::reference;                                                                          \
+  using pointer = typename Base::pointer;                                                                              \
+  using iterator_category = typename Base::iterator_category;

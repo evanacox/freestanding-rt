@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include "../platform/macros.h"
 #include "./traits.h"
 
 namespace frt {
@@ -17,7 +18,7 @@ namespace frt {
   ///
   /// \param value The value to indicate is movable
   /// \return An xvalue created from `value`
-  template <typename T> constexpr traits::RemoveReference<T>&& move(T&& value) noexcept {
+  template <typename T> FRT_ALWAYS_INLINE constexpr traits::RemoveReference<T>&& move(T&& value) noexcept {
     return static_cast<traits::RemoveReference<T>&&>(value);
   }
 } // namespace frt

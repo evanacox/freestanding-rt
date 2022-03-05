@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include "../platform/macros.h"
 #include "./traits.h"
 
 namespace frt {
@@ -17,7 +18,7 @@ namespace frt {
   ///
   /// \param value The reference to forward
   /// \return The forwarded reference
-  template <typename T> constexpr T&& forward(traits::RemoveReference<T>& value) noexcept {
+  template <typename T> FRT_ALWAYS_INLINE constexpr T&& forward(traits::RemoveReference<T>& value) noexcept {
     return static_cast<T&&>(value);
   }
 
@@ -25,7 +26,7 @@ namespace frt {
   ///
   /// \param value The reference to forward
   /// \return The forwarded reference
-  template <typename T> constexpr T&& forward(traits::RemoveReference<T>&& value) noexcept {
+  template <typename T> FRT_ALWAYS_INLINE constexpr T&& forward(traits::RemoveReference<T>&& value) noexcept {
     return static_cast<T&&>(value);
   }
 } // namespace frt
