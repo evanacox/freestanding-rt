@@ -11,6 +11,23 @@
 cmake_minimum_required(VERSION 3.20)
 project(libfrt)
 
+option(FRT_HAS_STDLIB "Whether or not to build assuming there is a C++ standard library" OFF)
+option(FRT_HAS_COMPARE "Whether to build assuming there is a <compare> header" OFF)
+option(FRT_HAS_MEMCPY "Whether to build assuming there is a `memcpy`/`memmove`/`memcmp`/`memset` implementation" OFF)
+option(FRT_HAS_ASSERT_FAIL "Whether to build assuming there is a `__frt_assert_fail` implementation" OFF)
+option(FRT_HAS_TRIED_THROW "Whether to build assuming there is a `__frt_tried_alloc` implementation" OFF)
+option(FRT_HAS_BOUNDS_FAIL "Whether to build assuming there is a `__frt_bounds_fail` implementation" OFF)
+option(FRT_DEV "Whether to build with the developer's personal settings" OFF)
+
+if (FRT_DEV)
+    set(FRT_HAS_ASSERT_FAIL OFF)
+    set(FRT_HAS_TRIED_THROW OFF)
+    set(FRT_HAS_BOUNDS_FAIL OFF)
+    set(FRT_HAS_MEMCPY ON)
+    set(FRT_HAS_COMPARE ON)
+    set(FRT_HAS_STDLIB OFF)
+endif ()
+
 function(frt_configure_target TARGET)
     list(APPEND FRT_WARNINGS)
 
@@ -40,14 +57,30 @@ function(frt_configure_target TARGET)
         message(STATUS "adding ${FRT_WARNINGS} to ${TARGET}")
         message(STATUS "adding FRT_GENERATE definitions to ${TARGET}")
         target_compile_options(${TARGET} PRIVATE ${FRT_WARNINGS})
-        target_compile_definitions(${TARGET} PUBLIC
-                FRT_GENERATE_DEFAULT_ASSERT_FAIL
-                FRT_GENERATE_DEFAULT_TRIED_THROW
-                FRT_GENERATE_DEFAULT_STD_COMPARE)
     endif ()
 
-    if (${CMAKE_BUILD_TYPE} STREQUAL Debug)
-        target_compile_definitions(${TARGET} PUBLIC FRT_DEBUG)
+    if (FRT_HAS_STDLIB)
+        target_compile_definitions(${TARGET} PUBLIC FRT_HAVE_STDLIB)
+    endif ()
+
+    if (NOT FRT_HAS_COMPARE)
+        target_compile_definitions(${TARGET} PUBLIC FRT_GENERATE_DEFAULT_STD_COMPARE)
+    endif ()
+
+    if (NOT FRT_HAS_MEMCPY)
+        target_compile_definitions(${TARGET} PUBLIC FRT_GENERATE_DEFAULT_MEM_INTRINS)
+    endif ()
+
+    if (NOT FRT_HAS_ASSERT_FAIL)
+        target_compile_definitions(${TARGET} PUBLIC FRT_GENERATE_DEFAULT_ASSERT_FAIL)
+    endif ()
+
+    if (NOT FRT_HAS_TRIED_THROW)
+        target_compile_definitions(${TARGET} PUBLIC FRT_GENERATE_DEFAULT_TRIED_THROW)
+    endif ()
+
+    if (NOT FRT_HAS_BOUNDS_FAIL)
+        target_compile_definitions(${TARGET} PUBLIC FRT_GENERATE_DEFAULT_BOUNDS_FAIL)
     endif ()
 
     target_compile_features(${TARGET} PUBLIC cxx_std_20)
