@@ -8,10 +8,21 @@
 //                                                                           //
 //======---------------------------------------------------------------======//
 
-#pragma once
+#include "frt/platform/new.h"
 
-#include "./platform/architecture.h"
-#include "./platform/compare.h"
-#include "./platform/compiler.h"
-#include "./platform/macros.h"
-#include "./platform/new.h"
+#ifdef FRT_GENERATE_PLACEMENT_NEW
+
+// as far as I can tell, compilers never actually call these (because the implementations
+// are quite literally standard-mandated to just be `return ptr`). However,
+// because there's no guarantee that `::operator new(size_t, void*)` is an exception,
+// we provide an implementation just in case.
+
+void* operator new(frt::usize /*unused*/, void* ptr) {
+  return ptr;
+}
+
+void* operator new[](frt::usize /*unused*/, void* ptr) {
+  return ptr;
+}
+
+#endif

@@ -10,8 +10,17 @@
 
 #pragma once
 
-#include "./platform/architecture.h"
-#include "./platform/compare.h"
-#include "./platform/compiler.h"
-#include "./platform/macros.h"
-#include "./platform/new.h"
+#ifdef FRT_GENERATE_DEFAULT_STD_COMPARE
+
+#include "../types/basic.h"
+
+void* operator new(frt::usize count, void* ptr);
+
+void* operator new[](frt::usize count, void* ptr);
+
+#else
+
+// simply delegate to `<new>` if we're able to
+#include <new>
+
+#endif

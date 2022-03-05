@@ -12,6 +12,7 @@ cmake_minimum_required(VERSION 3.20)
 project(libfrt)
 
 option(FRT_HAS_STDLIB "Whether or not to build assuming there is a C++ standard library" OFF)
+option(FRT_HAS_NEW "Whether or not to generate placement new implementations" OFF)
 option(FRT_HAS_COMPARE "Whether to build assuming there is a <compare> header" OFF)
 option(FRT_HAS_MEMCPY "Whether to build assuming there is a `memcpy`/`memmove`/`memcmp`/`memset` implementation" OFF)
 option(FRT_HAS_ASSERT_FAIL "Whether to build assuming there is a `__frt_assert_fail` implementation" OFF)
@@ -25,6 +26,7 @@ if (FRT_DEV)
     set(FRT_HAS_BOUNDS_FAIL OFF)
     set(FRT_HAS_MEMCPY ON)
     set(FRT_HAS_COMPARE ON)
+    set(FRT_HAS_NEW ON)
     set(FRT_HAS_STDLIB OFF)
 endif ()
 
@@ -63,6 +65,10 @@ function(frt_configure_target TARGET)
         target_compile_definitions(${TARGET} PUBLIC FRT_HAVE_STDLIB)
     endif ()
 
+    if (NOT FRT_HAS_NEW)
+        target_compile_definitions(${TARGET} PUBLIC FRT_GENERATE_PLACEMENT_NEW)
+    endif ()
+
     if (NOT FRT_HAS_COMPARE)
         target_compile_definitions(${TARGET} PUBLIC FRT_GENERATE_DEFAULT_STD_COMPARE)
     endif ()
@@ -88,6 +94,7 @@ endfunction()
 
 add_library(frt
         src/rt.cc
+        src/platform/new.cc
         src/runtime/ubsan.cc
         src/runtime/assert.cc
         src/runtime/failures.cc

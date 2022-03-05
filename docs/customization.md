@@ -41,6 +41,19 @@ minimum.
 
 The constant `frt::generated_compare` can be queried at build time to see which mode the library is built in.
 
+## `FRT_HAS_NEW`: Whether to implement `void* ::operator new(size_t, void*)`
+
+FRT needs access to placement new, either the environment can provide `<new>` or FRT can implement its own placement
+new.
+
+If the macro `FRT_GENERATE_DEFAULT_PLACEMENT_NEW` is defined, the following two functions will be generated:
+
+- `void* ::operator new(size_t, void*)`
+- `void* ::operator new[](size_t, void*)`
+
+They will be generated in the `frt/platform/new.h` header, and stubs will be generated in the FRT library. Otherwise,
+that header will simply `#include <new>` and no stubs will be created.
+
 ## `FRT_HAS_MEMCPY`: Whether to implement `mem{cpy, move, set, cmp}`
 
 GCC requires that the 4 core memory functions (`memcpy`, `memmove`, `memset` and `memcmp`) exist at link-time and have

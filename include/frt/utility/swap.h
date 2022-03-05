@@ -28,8 +28,7 @@ namespace frt {
     };
 
     struct Swap {
-      template <typename T, typename U>
-      constexpr void operator()(T&& lhs, U&& rhs) noexcept(noexcept(swap(frt::forward<T>(lhs), frt::forward<U>(rhs)))) {
+      template <typename T, typename U> constexpr void operator()(T&& lhs, U&& rhs) const noexcept {
         if constexpr (ADLHasSwap<T, U>) {
           swap(frt::forward<T>(lhs), frt::forward<U>(rhs));
         } else {
@@ -43,7 +42,7 @@ namespace frt {
       requires requires(const Swap& swap, T& lhs, U& rhs) {
         swap(lhs, rhs);
       } // NOLINTNEXTLINE(modernize-avoid-c-arrays)
-      constexpr void operator()(T (&lhs)[N], U (&rhs)[N]) const noexcept(noexcept((*this)(*lhs, *rhs))) {
+      constexpr void operator()(T (&lhs)[N], U (&rhs)[N]) const noexcept {
         for (auto i = frt::usize{0}; i < N; ++i) {
           (*this)(lhs[i], rhs[i]);
         }
