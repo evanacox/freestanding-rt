@@ -17,6 +17,8 @@
 #define FRT_PURE __attribute__((const))
 #define FRT_NEVER_INLINE __attribute__((noinline))
 #define FRT_COLD __attribute__((cold))
+#define FRT_UNLIKELY(expr) __builtin_expect((expr), false)
+#define FRT_LIKELY(expr) __builtin_expect((expr), true)
 #else
 #define FRT_ALWAYS_INLINE inline
 #define FRT_PURE

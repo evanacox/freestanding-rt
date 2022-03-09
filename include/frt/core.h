@@ -10,12 +10,13 @@
 
 #pragma once
 
+#include "./core/algorithms.h"
 #include "./core/allocator.h"
 #include "./core/allocators.h"
 #include "./core/bit.h"
+#include "./core/bump_alloc.h"
 #include "./core/iterators.h"
 #include "./core/limits.h"
 #include "./core/memory.h"
 #include "./core/numeric.h"
 #include "./core/pointers.h"
-#include "./core/bump_alloc.h"

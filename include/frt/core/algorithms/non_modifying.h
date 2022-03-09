@@ -10,28 +10,6 @@
 
 #pragma once
 
-#include "./move.h"
-
 namespace frt {
-  ///
-  ///
-  /// \tparam T
-  template <typename T> class Constant {
-  public:
-    ///
-    ///
-    /// \param value
-    consteval Constant(T value) noexcept : value_{value} {} // NOLINT(google-explicit-constructor)
-
-    constexpr Constant(const Constant&) noexcept = default;
-
-    constexpr Constant(Constant&&) noexcept = default;
-
-    constexpr operator T&() noexcept { // NOLINT(google-explicit-constructor)
-      return value_;
-    }
-
-  private:
-    T value_;
-  };
-} // namespace frt
+  //
+}

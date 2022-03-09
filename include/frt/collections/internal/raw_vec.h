@@ -81,7 +81,7 @@ namespace frt {
       constexpr reference push_back(const T& value) {
         // NEED to return here, if we don't GCC completely stumbles on this, and ends
         // up shoving a ton of code that screws with the stack into the hot path
-        if (len_ >= cap_) [[unlikely]] {
+        if (FRT_UNLIKELY(len_ >= cap_)) {
           return realloc_insert(value);
         }
 
@@ -98,11 +98,11 @@ namespace frt {
       constexpr ~RawVec() = default;
 
     private:
-      template <typename U> constexpr reference realloc_insert(U&& value) {
+      template <typename U> FRT_COLD constexpr reference realloc_insert(U&& value) {
         return push_end(frt::forward<U>(value));
       }
 
-      template <typename... Args> constexpr reference push_end(Args&&... args) {
+      template <typename... Args> FRT_ALWAYS_INLINE constexpr reference push_end(Args&&... args) {
         FRT_ASSERT(len_ < cap_, "cannot append to full vector");
 
         frt::construct_at(data_ + len_, frt::forward<Args>(args)...);

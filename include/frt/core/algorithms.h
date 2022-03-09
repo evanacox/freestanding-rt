@@ -10,10 +10,5 @@
 
 #pragma once
 
-#include "./collections.h"
-#include "./core.h"
-#include "./platform.h"
-#include "./runtime.h"
-#include "./sync.h"
-#include "./types.h"
-#include "./utility.h"
+#include "./algorithms/non_modifying.h"
+#include "./algorithms/ranges.h"
