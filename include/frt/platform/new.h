@@ -10,15 +10,17 @@
 
 #pragma once
 
-#include "../platform/macros.h"
-#include "./traits.h"
+#ifdef FRT_GENERATE_DEFAULT_STD_COMPARE
 
-namespace frt {
-  /// Indicates that the object passed in may be "moved from," produces an xvalue.
-  ///
-  /// \param value The value to indicate is movable
-  /// \return An xvalue created from `value`
-  template <typename T> FRT_ALWAYS_INLINE constexpr traits::RemoveReference<T>&& move(T&& value) noexcept {
-    return static_cast<traits::RemoveReference<T>&&>(value);
-  }
-} // namespace frt
+#include "../types/basic.h"
+
+void* operator new(frt::usize count, void* ptr);
+
+void* operator new[](frt::usize count, void* ptr);
+
+#else
+
+// simply delegate to `<new>` if we're able to
+#include <new>
+
+#endif

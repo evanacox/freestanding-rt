@@ -15,9 +15,12 @@
 #if defined(FRT_COMPILER_GNULIKE)
 #define FRT_ALWAYS_INLINE inline __attribute__((always_inline))
 #define FRT_PURE __attribute__((const))
+#define FRT_NEVER_INLINE __attribute__((noinline))
+#define FRT_COLD __attribute__((cold))
 #else
 #define FRT_ALWAYS_INLINE inline
 #define FRT_PURE
+#define FRT_COLD
 #endif
 
 #define FRT_STRINGIFY1(s) #s

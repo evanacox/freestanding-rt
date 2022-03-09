@@ -130,13 +130,13 @@ namespace frt {
     };
 
     template <typename A>
-    concept HasStateful = requires {
-      { A::is_stateful } -> SameAs<bool>;
+    concept HasNothrow = requires {
+      { A::is_nothrow } -> SameAs<bool>;
     };
 
-    template <typename A> inline constexpr bool is_stateful = false;
+    template <typename A> inline constexpr bool is_nothrow = noexcept(noexcept(traits::declval<A>().allocate(1)));
 
-    template <HasStateful A> inline constexpr bool is_stateful<A> = A::is_stateful;
+    template <HasNothrow A> inline constexpr bool is_nothrow<A> = A::is_nothrow;
   } // namespace internal
 
   /// A concept that models allocators for the FRT library. However, these are not
@@ -158,7 +158,6 @@ namespace frt {
     typename internal::AllocConstVoidPtr<A>;
     typename internal::AllocSize<A>;
     typename internal::AllocRebind<A, internal::EmptyTestTypeU>;
-    { internal::is_stateful<A> } -> SameAs<bool>;
   };
 
   template <Allocator A> struct AllocatorTraits {
@@ -189,7 +188,7 @@ namespace frt {
       return alloc.deallocate(storage, n);
     }
 
-    inline static constexpr bool is_stateful = internal::is_stateful<A>;
+    inline static constexpr bool is_nothrow = internal::is_nothrow<A>;
   };
 
 } // namespace frt

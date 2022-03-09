@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include "../platform/new.h"
 #include "../utility/swap.h"
 #include "./forward.h"
 #include "./invoke.h"

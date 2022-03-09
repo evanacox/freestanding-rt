@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include "./utility/construct.h"
 #include "./utility/defer.h"
 #include "./utility/swap.h"
 #include "./utility/unaligned.h"

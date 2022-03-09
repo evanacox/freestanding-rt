@@ -25,14 +25,14 @@ namespace frt {
   /// \tparam N The length of the array
   template <typename T, frt::usize N, frt::usize Align = alignof(T)>
   struct Array // NOLINT(fuchsia-trailing-return)
-      : public internal::ContainerTypes<T> {
-    using value_type = typename internal::ContainerTypes<T>::value_type;
-    using size_type = typename internal::ContainerTypes<T>::size_type;
-    using difference_type = typename internal::ContainerTypes<T>::difference_type;
-    using reference = typename internal::ContainerTypes<T>::reference;
-    using const_reference = typename internal::ContainerTypes<T>::const_reference;
-    using pointer = typename internal::ContainerTypes<T>::pointer;
-    using const_pointer = typename internal::ContainerTypes<T>::const_pointer;
+  {
+    using value_type = T;
+    using size_type = frt::usize;
+    using difference_type = frt::isize;
+    using reference = value_type&;
+    using const_reference = const value_type&;
+    using pointer = value_type*;
+    using const_pointer = const value_type*;
     using iterator = pointer;
     using const_iterator = const_pointer;
     using reverse_iterator = ReverseIterator<iterator>;

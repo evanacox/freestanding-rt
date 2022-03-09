@@ -8,17 +8,21 @@
 //                                                                           //
 //======---------------------------------------------------------------======//
 
-#pragma once
+#include "frt/platform/new.h"
 
-#include "../platform/macros.h"
-#include "./traits.h"
+#ifdef FRT_GENERATE_PLACEMENT_NEW
 
-namespace frt {
-  /// Indicates that the object passed in may be "moved from," produces an xvalue.
-  ///
-  /// \param value The value to indicate is movable
-  /// \return An xvalue created from `value`
-  template <typename T> FRT_ALWAYS_INLINE constexpr traits::RemoveReference<T>&& move(T&& value) noexcept {
-    return static_cast<traits::RemoveReference<T>&&>(value);
-  }
-} // namespace frt
+// as far as I can tell, compilers never actually call these (because the implementations
+// are quite literally standard-mandated to just be `return ptr`). However,
+// because there's no guarantee that `::operator new(size_t, void*)` is an exception,
+// we provide an implementation just in case.
+
+void* operator new(frt::usize /*unused*/, void* ptr) {
+  return ptr;
+}
+
+void* operator new[](frt::usize /*unused*/, void* ptr) {
+  return ptr;
+}
+
+#endif

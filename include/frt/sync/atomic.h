@@ -29,7 +29,7 @@ namespace frt {
 #if defined(FRT_ARCH_X86_64)
       _mm_pause(); // `__builtin_ia32_pause` also introduces a memory barrier, this is **only** meant to be a spin hint
 #elif defined(FRT_COMPILER_GNULIKE) && defined(FRT_ARCH_ARM)
-      volatile asm("yield"); // equivalent to `pause` on x86
+      asm volatile("yield"); // equivalent to `pause` on x86
 #else
       (void)0; // if we don't support the arch, just do a no-op. won't help power efficiency but wont hurt it either
 #endif

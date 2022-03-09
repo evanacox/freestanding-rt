@@ -220,7 +220,7 @@ namespace frt::traits {
   template <typename T> struct IsIntegralTrait : BoolConstant<is_integral<T>> {};
 
   template <typename T>
-  inline constexpr bool is_floating_point = internal::OneOf<RemoveCV<T>, float, double, long double, __float128>;
+  inline constexpr bool is_floating_point = internal::OneOf<RemoveCV<T>, float, double, long double>;
 
   template <typename T> struct IsFloatingPointTrait : BoolConstant<is_floating_point<T>> {};
 

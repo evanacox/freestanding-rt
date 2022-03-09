@@ -11,6 +11,7 @@
 #pragma once
 
 #include "./platform/architecture.h"
+#include "./platform/compare.h"
 #include "./platform/compiler.h"
 #include "./platform/macros.h"
-#include "./platform/compare.h"
+#include "./platform/new.h"

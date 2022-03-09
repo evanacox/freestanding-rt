@@ -11,3 +11,4 @@
 #pragma once
 
 #include "./collections/array.h"
+#include "./collections/static_vec.h"

@@ -90,4 +90,6 @@ namespace frt {
   using ifast32 = int_fast32_t;
 
   using ifast64 = int_fast64_t;
+
+  template <typename R, typename... Args> using RawFn = R (*)(Args...);
 } // namespace frt
