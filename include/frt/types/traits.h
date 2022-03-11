@@ -690,6 +690,9 @@ namespace frt::traits {
   struct ExtentTrait<T[], U> : // NOLINT(modernize-avoid-c-arrays)
                                public IntegralConstant<frt::usize, U == 0 ? 0 : ExtentTrait<T, U - 1>::value> {};
 
+  template <typename T, unsigned U = 0>
+  inline constexpr frt::usize extent = static_cast<frt::usize>(ExtentTrait<T, U>::value);
+
   template <typename Base, typename Derived> inline constexpr bool is_base_of = __is_base_of(Base, Derived);
 
   template <typename Base, typename Derived> struct IsBaseOfTrait : BoolConstant<is_base_of<Base, Derived>> {};

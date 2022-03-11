@@ -10,9 +10,15 @@
 
 #pragma once
 
-#include "./utility/as.h"
-#include "./utility/construct.h"
-#include "./utility/defer.h"
-#include "./utility/swap.h"
-#include "./utility/unaligned.h"
-#include "./utility/visit.h"
+#include "../platform/macros.h"
+#include "../types/traits.h"
+
+namespace frt {
+  /// Adds a `const` to a reference
+  ///
+  /// \param ref The object to get a `const T&` from
+  /// \return `ref` as a const reference
+  template <typename T> [[nodiscard]] FRT_ALWAYS_INLINE constexpr frt::traits::AddConst<T>& as_const(T& ref) noexcept {
+    return ref;
+  }
+} // namespace frt

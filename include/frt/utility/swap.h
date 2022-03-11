@@ -15,9 +15,7 @@
 #include "../types/traits.h"
 
 namespace frt {
-  namespace internal {
-    template <typename T> void swap(T&, T&) = delete;
-
+  namespace swap_internal {
     template <typename T>
     concept UserDefined = traits::is_class<traits::RemoveReference<T>> || traits::is_enum<traits::RemoveReference<T>>;
 
@@ -28,7 +26,8 @@ namespace frt {
     };
 
     struct Swap {
-      template <typename T, typename U> constexpr void operator()(T&& lhs, U&& rhs) const noexcept {
+      template <typename T, typename U>
+      constexpr void operator()(T&& lhs, U&& rhs) const noexcept(is_noexcept<T, U>()) {
         if constexpr (ADLHasSwap<T, U>) {
           swap(frt::forward<T>(lhs), frt::forward<U>(rhs));
         } else {
@@ -42,13 +41,23 @@ namespace frt {
       requires requires(const Swap& swap, T& lhs, U& rhs) {
         swap(lhs, rhs);
       } // NOLINTNEXTLINE(modernize-avoid-c-arrays)
-      constexpr void operator()(T (&lhs)[N], U (&rhs)[N]) const noexcept {
+      constexpr void operator()(T (&lhs)[N], U (&rhs)[N]) const noexcept(noexcept((*this)(lhs[0], rhs[0]))) {
         for (auto i = frt::usize{0}; i < N; ++i) {
           (*this)(lhs[i], rhs[i]);
         }
       }
+
+    private:
+      template <typename T, typename U> [[nodiscard]] constexpr static bool is_noexcept() noexcept {
+        if constexpr (ADLHasSwap<T, U>) {
+          return noexcept(swap(frt::forward<T>(traits::declval<T&&>()), frt::forward<U>(traits::declval<U&&>())));
+        }
+
+        return traits::is_nothrow_move_assignable<
+            traits::CommonType<traits::RemoveReference<T>, traits::RemoveReference<U>>>;
+      }
     };
-  } // namespace internal
+  } // namespace swap_internal
 
   /// Customization point for swapping two objects.
   ///
@@ -57,7 +66,7 @@ namespace frt {
   /// template <typename T, typename R>
   /// constexpr void swap(T&& a, U&& b) noexcept(/* noexcept-swappable */);
   /// ```
-  inline constexpr internal::Swap swap = internal::Swap{};
+  inline constexpr swap_internal::Swap swap = swap_internal::Swap{};
 
   /// Exchanges `a`'s value with `new_value`, and returns the old value
   ///

@@ -240,7 +240,7 @@ namespace frt {
     //     value: 0001 1111 (31)
     //  expected: 0001 0000 (16)
     //               ^
-    //               this is 1 shifted exactly (digits<T> - leading_zeroes(value)) - 1 bits left
+    //               this is 1 shifted exactly (digits<T> - leading_zeroes(value) - 1) bits left
     //
     if (value == 0) {
       return 0;
