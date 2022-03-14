@@ -124,16 +124,6 @@ namespace frt {
   } // namespace internal
 
   namespace internal {
-    template <typename T>
-    concept Referenceable = requires(T& a) {
-      a;
-    };
-
-    template <typename T>
-    concept Dereferenceable = Referenceable<T> && requires(T& a) {
-      *a;
-    };
-
     template <typename I>
     concept IsFromPrimary = requires {
       typename IteratorTraits<I>::__frt_iterator_traits_primary;
@@ -188,13 +178,6 @@ namespace frt {
   template <IndirectlyReadable I> using IterCommonReference = traits::CommonReference<IterReference<I>, IterValue<I>&>;
 
   namespace internal {
-    template <class I>
-    concept LegacyIterator = Copyable<I> && requires(I i) {
-      { *i } -> Referenceable;
-      { ++i } -> SameAs<I&>;
-      { *i++ } -> Referenceable;
-    };
-
     template <typename I>
     concept LegacyInputIterator = LegacyIterator<I> && EqualityComparable<I> && requires(I i) {
       typename IncrementableTraits<I>::difference_type;

@@ -15,7 +15,26 @@
 #include "./tags.h"
 
 namespace frt {
+  template <typename I> struct IncrementableTraits;
+
   namespace internal {
+    template <typename T>
+    concept Referenceable = requires(T& a) {
+      a;
+    };
+
+    template <typename T>
+    concept Dereferenceable = Referenceable<T> && requires(T& a) {
+      *a;
+    };
+
+    template <class I>
+    concept LegacyIterator = Copyable<I> && requires(I i) {
+      { *i } -> Referenceable;
+      { ++i } -> SameAs<I&>;
+      { *i++ } -> Referenceable;
+    };
+
     template <typename Iter>
     concept HasAllExceptPointer = requires {
       typename Iter::difference_type;
@@ -66,6 +85,26 @@ namespace frt {
       using iterator_category = RandomTag;
       using iterator_concept = ContiguousTag;
       using __frt_iterator_traits_primary = void;
+    };
+
+    template <typename T> struct IncremDiffType { using type = void; };
+
+    template <typename T>
+    requires requires {
+      typename IncrementableTraits<T>::difference_type;
+    }
+    struct IncremDiffType<T> {
+      using type = typename IncrementableTraits<T>::difference_type;
+    };
+
+    template <typename T>
+    requires LegacyIterator<T>
+    struct IteratorTraitsImpl<T> {
+      using difference_type = typename IncremDiffType<T>::type;
+      using value_type = void;
+      using pointer = void;
+      using reference = void;
+      using iterator_category = OutputTag;
     };
   } // namespace internal
 
