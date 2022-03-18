@@ -366,7 +366,7 @@ namespace frt {
   concept IndirectlyCopyable = IndirectlyReadable<In> && IndirectlyWritable<Out, IterReference<In>>;
 
   template <typename In, typename Out>
-  concept indirectly_copyable_storable = IndirectlyCopyable<In, Out>
+  concept IndirectlyCopyableStorable = IndirectlyCopyable<In, Out>
       && IndirectlyWritable <Out, IterValue<In>&>
       && IndirectlyWritable<Out, const IterValue<In>&>&& IndirectlyWritable<Out, IterValue<In>&&>
       && IndirectlyWritable<Out, const IterValue<In>&&>&& Copyable<IterValue<In>>
