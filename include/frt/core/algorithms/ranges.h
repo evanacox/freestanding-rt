@@ -106,6 +106,18 @@ namespace frt {
     };
 
     struct Begin {
+    private:
+      template <typename T> static constexpr bool is_noexcept() {
+        if constexpr (traits::is_array<traits::RemoveReference<T>>) {
+          return true;
+        } else if constexpr (internal::MemberBegin<T>) {
+          return noexcept(traits::declval<T&>().begin());
+        } else {
+          return noexcept(begin(traits::declval<T&>()));
+        }
+      }
+
+    public:
       template <internal::MaybeBorrowedRange T>
       requires traits::is_array<traits::RemoveReference<T>> || internal::MemberBegin<T> || ADLBegin<T>
       constexpr auto operator()(T&& object) const noexcept(is_noexcept<T>()) {
@@ -117,20 +129,21 @@ namespace frt {
           return begin(object);
         }
       }
+    };
 
+    struct End {
     private:
       template <typename T> static constexpr bool is_noexcept() {
         if constexpr (traits::is_array<traits::RemoveReference<T>>) {
           return true;
-        } else if constexpr (internal::MemberBegin<T>) {
-          return noexcept(traits::declval<T&>().begin());
+        } else if constexpr (internal::MemberEnd<T>) {
+          return noexcept(traits::declval<T&>().end());
         } else {
-          return noexcept(begin(traits::declval<T&>()));
+          return noexcept(end(traits::declval<T&>()));
         }
       }
-    };
 
-    struct End {
+    public:
       template <internal::MaybeBorrowedRange T>
       requires traits::is_bounded_array<traits::RemoveReference<T>> || internal::MemberEnd<T> || ADLEnd<T>
       constexpr auto operator()(T&& object) const noexcept(is_noexcept<T>()) {
@@ -140,17 +153,6 @@ namespace frt {
           return object.end();
         } else {
           return end(object);
-        }
-      }
-
-    private:
-      template <typename T> static constexpr bool is_noexcept() {
-        if constexpr (traits::is_array<traits::RemoveReference<T>>) {
-          return true;
-        } else if constexpr (internal::MemberEnd<T>) {
-          return noexcept(traits::declval<T&>().end());
-        } else {
-          return noexcept(end(traits::declval<T&>()));
         }
       }
     };
@@ -178,6 +180,18 @@ namespace frt {
     };
 
     struct RBegin {
+    private:
+      template <typename T> static constexpr bool is_noexcept() {
+        if constexpr (internal::MemberRBegin<T>) {
+          return noexcept(traits::declval<T&>().rbegin());
+        } else if constexpr (ADLRBegin<T>) {
+          return noexcept(rbegin(traits::declval<T&>()));
+        } else {
+          return noexcept(End{}(traits::declval<T&>()));
+        }
+      }
+
+    public:
       template <internal::MaybeBorrowedRange T>
       requires Reversable<T> || internal::MemberRBegin<T> || ADLRBegin<T>
       constexpr auto operator()(T&& object) const noexcept(is_noexcept<T>()) {
@@ -189,7 +203,9 @@ namespace frt {
           return frt::make_reverse_iterator(End{}(object));
         }
       }
+    };
 
+    struct REnd {
     private:
       template <typename T> static constexpr bool is_noexcept() {
         if constexpr (internal::MemberRBegin<T>) {
@@ -197,12 +213,11 @@ namespace frt {
         } else if constexpr (ADLRBegin<T>) {
           return noexcept(rbegin(traits::declval<T&>()));
         } else {
-          return noexcept(End{}(traits::declval<T&>()));
+          return noexcept(Begin{}(traits::declval<T&>()));
         }
       }
-    };
 
-    struct REnd {
+    public:
       template <internal::MaybeBorrowedRange T>
       requires Reversable<T> || internal::MemberRBegin<T> || ADLRBegin<T>
       constexpr auto operator()(T&& object) const noexcept(is_noexcept<T>()) {
@@ -212,17 +227,6 @@ namespace frt {
           return rbegin(object);
         } else {
           return frt::make_reverse_iterator(Begin{}(object));
-        }
-      }
-
-    private:
-      template <typename T> static constexpr bool is_noexcept() {
-        if constexpr (internal::MemberRBegin<T>) {
-          return noexcept(traits::declval<T&>().rbegin());
-        } else if constexpr (ADLRBegin<T>) {
-          return noexcept(rbegin(traits::declval<T&>()));
-        } else {
-          return noexcept(Begin{}(traits::declval<T&>()));
         }
       }
     };
@@ -307,6 +311,18 @@ namespace frt {
     }
 
     struct Size {
+    private:
+      template <typename T> static constexpr bool is_noexcept() {
+        if constexpr (internal::MemberRBegin<T>) {
+          return noexcept(traits::declval<T&>().rbegin());
+        } else if constexpr (ADLRBegin<T>) {
+          return noexcept(rbegin(traits::declval<T&>()));
+        } else {
+          return noexcept(Begin{}(traits::declval<T&>()));
+        }
+      }
+
+    public:
       template <internal::MaybeBorrowedRange T>
       requires Reversable<T> || internal::MemberRBegin<T> || ADLRBegin<T>
       constexpr auto operator()(T&& object) const noexcept(is_noexcept<T>()) {
@@ -316,17 +332,6 @@ namespace frt {
           return rbegin(object);
         } else {
           return frt::make_reverse_iterator(Begin{}(object));
-        }
-      }
-
-    private:
-      template <typename T> static constexpr bool is_noexcept() {
-        if constexpr (internal::MemberRBegin<T>) {
-          return noexcept(traits::declval<T&>().rbegin());
-        } else if constexpr (ADLRBegin<T>) {
-          return noexcept(rbegin(traits::declval<T&>()));
-        } else {
-          return noexcept(Begin{}(traits::declval<T&>()));
         }
       }
     };

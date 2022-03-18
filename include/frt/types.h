@@ -12,7 +12,6 @@
 
 #include "./types/basic.h"
 #include "./types/concepts.h"
-#include "./types/forced_constant.h"
 #include "./types/forward.h"
 #include "./types/invoke.h"
 #include "./types/move.h"

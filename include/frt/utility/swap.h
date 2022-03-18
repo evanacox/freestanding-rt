@@ -26,6 +26,17 @@ namespace frt {
     };
 
     struct Swap {
+    private:
+      template <typename T, typename U> [[nodiscard]] constexpr static bool is_noexcept() noexcept {
+        if constexpr (ADLHasSwap<T, U>) {
+          return noexcept(swap(frt::forward<T>(traits::declval<T&&>()), frt::forward<U>(traits::declval<U&&>())));
+        }
+
+        return traits::is_nothrow_move_assignable<
+            traits::CommonType<traits::RemoveReference<T>, traits::RemoveReference<U>>>;
+      }
+
+    public:
       template <typename T, typename U>
       constexpr void operator()(T&& lhs, U&& rhs) const noexcept(is_noexcept<T, U>()) {
         if constexpr (ADLHasSwap<T, U>) {
@@ -45,16 +56,6 @@ namespace frt {
         for (auto i = frt::usize{0}; i < N; ++i) {
           (*this)(lhs[i], rhs[i]);
         }
-      }
-
-    private:
-      template <typename T, typename U> [[nodiscard]] constexpr static bool is_noexcept() noexcept {
-        if constexpr (ADLHasSwap<T, U>) {
-          return noexcept(swap(frt::forward<T>(traits::declval<T&&>()), frt::forward<U>(traits::declval<U&&>())));
-        }
-
-        return traits::is_nothrow_move_assignable<
-            traits::CommonType<traits::RemoveReference<T>, traits::RemoveReference<U>>>;
       }
     };
   } // namespace swap_internal
