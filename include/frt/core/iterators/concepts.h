@@ -18,6 +18,7 @@
 #include "./traits.h"
 
 namespace frt {
+
   namespace internal {
     /// Checks that the user of the interface has provided a valid iterator tag
     /// \tparam T
@@ -121,100 +122,6 @@ namespace frt {
     /// \tparam Reference The reference type for `T`
     template <typename T, typename Reference, typename Pointer, typename DiffType>
     concept OutputIteratorReady = InputIteratorReady<T, Reference, Pointer, DiffType>;
-  } // namespace internal
-
-  namespace internal {
-    template <typename I>
-    concept IsFromPrimary = requires {
-      typename IteratorTraits<I>::__frt_iterator_traits_primary;
-    };
-
-    template <typename I> struct IterConcept;
-
-    template <typename I>
-    requires IsFromPrimary<I> && requires {
-      I::iterator_concept;
-    }
-    struct IterConcept<I> : I::iterator_concept {};
-
-    template <typename I>
-    requires IsFromPrimary<I> && requires {
-      I::iterator_category;
-    }
-    struct IterConcept<I> : I::iterator_category {};
-
-    template <typename I>
-    requires IsFromPrimary<I>
-    struct IterConcept<I> : RandomTag {
-    };
-  } // namespace internal
-
-  template <typename I>
-  using IterValue = traits::Conditional<internal::IsFromPrimary<traits::RemoveCVRef<I>>,
-      typename IndirectlyReadableTraits<traits::RemoveCVRef<I>>::value_type,
-      typename IteratorTraits<traits::RemoveCVRef<I>>::value_type>;
-
-  template <internal::Dereferenceable I> using IterReference = decltype(*traits::declval<I&>());
-
-  template <typename I>
-  using IterDifference = traits::Conditional<internal::IsFromPrimary<traits::RemoveCVRef<I>>,
-      typename IncrementableTraits<traits::RemoveCVRef<I>>::difference_type,
-      typename IteratorTraits<traits::RemoveCVRef<I>>::difference_type>;
-
-  template <internal::Dereferenceable I>
-  using IterRvalueReference = typename IteratorTraits<traits::RemoveCVRef<I>>::value_type;
-
-  template <typename I>
-  concept IndirectlyReadable =
-      CommonReferenceWith<IterReference<I> &&, IterValue<I>&>&& CommonReferenceWith<IterReference<I>&&,
-          IterRvalueReference<I>&&>&& CommonReferenceWith<IterRvalueReference<I>&&,
-          const IterValue<I>&>&& requires(const I in) {
-    typename IterValue<I>;
-    typename IterReference<I>;
-    typename IterRvalueReference<I>;
-    { *in } -> SameAs<IterReference<I>>;
-  };
-
-  template <IndirectlyReadable I> using IterCommonReference = traits::CommonReference<IterReference<I>, IterValue<I>&>;
-
-  namespace internal {
-    template <typename I>
-    concept LegacyInputIterator = LegacyIterator<I> && EqualityComparable<I> && requires(I i) {
-      typename IncrementableTraits<I>::difference_type;
-      typename IndirectlyReadableTraits<I>::value_type;
-      typename traits::CommonReference<IterReference<I>&&, typename IndirectlyReadableTraits<I>::value_type&>;
-      *i++;
-      typename traits::CommonReference<decltype(*i++)&&, typename IndirectlyReadableTraits<I>::value_type&>;
-      requires SignedIntegral<typename IncrementableTraits<I>::difference_type>;
-    };
-
-    template <typename I>
-    concept LegacyForwardIterator =
-        LegacyInputIterator<I> && ConstructibleFrom<I> && traits::is_lvalue_reference<IterReference<I>> && SameAs
-        < traits::RemoveCVRef<IterReference<I>>,
-    typename IndirectlyReadableTraits<I>::value_type > &&requires(I i) {
-      { i++ } -> ConvertibleTo<const I&>;
-      { *i++ } -> SameAs<IterReference<I>>;
-    };
-
-    template <typename I>
-    concept LegacyBidirectionalIterator = LegacyForwardIterator<I> && requires(I i) {
-      { --i } -> SameAs<I&>;
-      { i-- } -> ConvertibleTo<const I&>;
-      { *i-- } -> SameAs<IterReference<I>>;
-    };
-
-    template <typename I>
-    concept LegacyRandomAccessIterator = LegacyBidirectionalIterator<I> && TotallyOrdered<I> && requires(I i,
-        typename IncrementableTraits<I>::difference_type n) {
-      { i += n } -> SameAs<I&>;
-      { i -= n } -> SameAs<I&>;
-      { i + n } -> SameAs<I>;
-      { n + i } -> SameAs<I>;
-      { i - n } -> SameAs<I>;
-      { i - i } -> SameAs<decltype(n)>;
-      { i[n] } -> ConvertibleTo<IterReference<I>>;
-    };
   } // namespace internal
 
   template <typename Out, typename T>

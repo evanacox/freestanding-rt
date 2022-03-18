@@ -109,6 +109,104 @@ namespace frt {
   template <typename I> struct IndirectlyReadableTraits : internal::IndirectlyReadableTraitsImpl<I> {};
 
   namespace internal {
+    template <typename I> struct IteratorTraitsImpl;
+  }
+
+  template <typename I> struct IteratorTraits : internal::IteratorTraitsImpl<I> {};
+
+  namespace internal {
+    template <typename I>
+    concept IsFromPrimary = requires {
+      typename IteratorTraits<I>::__frt_iterator_traits_primary;
+    };
+
+    template <typename I> struct IterConcept;
+
+    template <typename I>
+    requires IsFromPrimary<I> && requires {
+      I::iterator_concept;
+    }
+    struct IterConcept<I> : I::iterator_concept {};
+
+    template <typename I>
+    requires IsFromPrimary<I> && requires {
+      I::iterator_category;
+    }
+    struct IterConcept<I> : I::iterator_category {};
+
+    template <typename I>
+    requires IsFromPrimary<I>
+    struct IterConcept<I> : RandomTag {
+    };
+  } // namespace internal
+
+  template <typename I>
+  using IterValue = traits::Conditional<internal::IsFromPrimary<traits::RemoveCVRef<I>>,
+      typename IndirectlyReadableTraits<traits::RemoveCVRef<I>>::value_type,
+      typename IteratorTraits<traits::RemoveCVRef<I>>::value_type>;
+
+  template <internal::Dereferenceable I> using IterReference = decltype(*traits::declval<I&>());
+
+  template <typename I>
+  using IterDifference = traits::Conditional<internal::IsFromPrimary<traits::RemoveCVRef<I>>,
+      typename IncrementableTraits<traits::RemoveCVRef<I>>::difference_type,
+      typename IteratorTraits<traits::RemoveCVRef<I>>::difference_type>;
+
+  template <internal::Dereferenceable I>
+  using IterRvalueReference = typename IteratorTraits<traits::RemoveCVRef<I>>::value_type;
+
+  template <typename I>
+  concept IndirectlyReadable =
+      CommonReferenceWith<IterReference<I> &&, IterValue<I>&>&& CommonReferenceWith<IterReference<I>&&,
+          IterRvalueReference<I>&&>&& CommonReferenceWith<IterRvalueReference<I>&&,
+          const IterValue<I>&>&& requires(const I in) {
+    typename IterValue<I>;
+    typename IterReference<I>;
+    typename IterRvalueReference<I>;
+    { *in } -> SameAs<IterReference<I>>;
+  };
+
+  template <IndirectlyReadable I> using IterCommonReference = traits::CommonReference<IterReference<I>, IterValue<I>&>;
+
+  namespace internal {
+    template <typename I>
+    concept LegacyInputIterator = LegacyIterator<I> && EqualityComparable<I> && requires(I i) {
+      typename IncrementableTraits<I>::difference_type;
+      typename IndirectlyReadableTraits<I>::value_type;
+      typename traits::CommonReference<IterReference<I>&&, typename IndirectlyReadableTraits<I>::value_type&>;
+      *i++;
+      typename traits::CommonReference<decltype(*i++)&&, typename IndirectlyReadableTraits<I>::value_type&>;
+      requires SignedIntegral<typename IncrementableTraits<I>::difference_type>;
+    };
+
+    template <typename I>
+    concept LegacyForwardIterator =
+        LegacyInputIterator<I> && ConstructibleFrom<I> && traits::is_lvalue_reference<IterReference<I>> && SameAs
+        < traits::RemoveCVRef<IterReference<I>>,
+    typename IndirectlyReadableTraits<I>::value_type > &&requires(I i) {
+      { i++ } -> ConvertibleTo<const I&>;
+      { *i++ } -> SameAs<IterReference<I>>;
+    };
+
+    template <typename I>
+    concept LegacyBidirectionalIterator = LegacyForwardIterator<I> && requires(I i) {
+      { --i } -> SameAs<I&>;
+      { i-- } -> ConvertibleTo<const I&>;
+      { *i-- } -> SameAs<IterReference<I>>;
+    };
+
+    template <typename I>
+    concept LegacyRandomAccessIterator = LegacyBidirectionalIterator<I> && TotallyOrdered<I> && requires(I i,
+        typename IncrementableTraits<I>::difference_type n) {
+      { i += n } -> SameAs<I&>;
+      { i -= n } -> SameAs<I&>;
+      { i + n } -> SameAs<I>;
+      { n + i } -> SameAs<I>;
+      { i - n } -> SameAs<I>;
+      { i - i } -> SameAs<decltype(n)>;
+      { i[n] } -> ConvertibleTo<IterReference<I>>;
+    };
+
     template <typename Iter>
     concept HasAllExceptPointer = requires {
       typename Iter::difference_type;
@@ -137,7 +235,76 @@ namespace frt {
       using iterator_concept = frt::ContiguousIteratorTag;
     };
 
-  } // namespace internal
+    template <HasAllExceptPointer Iter> struct IteratorTraitsImpl<Iter> {
+      using difference_type = typename Iter::difference_type;
+      using value_type = typename Iter::value_type;
+      using pointer = void;
+      using reference = typename Iter::reference;
+      using iterator_category = typename Iter::iterator_category;
+    };
 
-  template <typename Iter> struct IteratorTraits : internal::IteratorTraitsImpl<Iter> {};
+    template <typename Iter> struct IteratorTraitsPointer2 { using type = void; };
+
+    template <typename Iter>
+    requires requires(Iter& i) {
+      i.operator->();
+    }
+    struct IteratorTraitsPointer2<Iter> {
+      using type = decltype(traits::declval<Iter&>().operator->());
+    };
+
+    template <typename Iter> struct IteratorTraitsPointer : IteratorTraitsPointer2<Iter> {};
+
+    template <typename Iter>
+    requires requires {
+      typename Iter::pointer;
+    }
+    struct IteratorTraitsPointer<Iter> {
+      using type = typename Iter::pointer;
+    };
+
+    template <typename Iter> struct IteratorTraitsReference { using type = IterReference<Iter>; };
+
+    template <typename Iter>
+    requires requires {
+      typename Iter::reference;
+    }
+    struct IteratorTraitsReference<Iter> {
+      using type = typename Iter::reference;
+    };
+
+    template <typename Iter> struct IteratorTraitsCategory2 { using type = InputTag; };
+
+    template <LegacyForwardIterator Iter> struct IteratorTraitsCategory2<Iter> { using type = ForwardTag; };
+
+    template <LegacyBidirectionalIterator Iter> struct IteratorTraitsCategory2<Iter> { using type = BidirectionTag; };
+
+    template <LegacyRandomAccessIterator Iter> struct IteratorTraitsCategory2<Iter> { using type = RandomTag; };
+
+    template <typename Iter> struct IteratorTraitsCategory : IteratorTraitsCategory2<Iter> {};
+
+    template <typename Iter>
+    requires requires {
+      typename Iter::iterator_category;
+    }
+    struct IteratorTraitsCategory<Iter> {
+      using type = typename Iter::iterator_category;
+    };
+
+    template <LegacyInputIterator Iter> struct IteratorTraitsImpl<Iter> {
+      using difference_type = typename IncrementableTraits<Iter>::difference_type;
+      using value_type = typename IndirectlyReadableTraits<Iter>::value_type;
+      using pointer = typename IteratorTraitsPointer<Iter>::type;
+      using reference = typename IteratorTraitsReference<Iter>::type;
+      using iterator_category = typename IteratorTraitsCategory<Iter>::type;
+    };
+
+    template <LegacyIterator Iter> struct IteratorTraitsImpl<Iter> {
+      using difference_type = typename IncrementableTraits<Iter>::difference_type;
+      using value_type = void;
+      using pointer = void;
+      using reference = void;
+      using iterator_category = OutputTag;
+    };
+  } // namespace internal
 } // namespace frt

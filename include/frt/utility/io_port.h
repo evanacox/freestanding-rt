@@ -210,10 +210,4 @@ namespace frt {
   private:
     T value_;
   };
-
-  static_assert(std::same_as<std::iterator_traits<IOPortRW<int, 0x800>>::difference_type,
-      frt::IteratorTraits<IOPortRW<int, 0x800>>::difference_type>);
-  static_assert(std::same_as<std::iter_value_t<IOPortRW<int, 0x800>>, frt::IterValue<IOPortRW<int, 0x800>>>);
-  static_assert(frt::ForwardIterator<IOPortRW<int, 0x800>>);
-  static_assert(std::forward_iterator<IOPortRW<int, 0x800>>);
 } // namespace frt
