@@ -21,88 +21,36 @@ namespace frt {
 
   namespace internal {
     template <typename T>
+    constexpr traits::Decay<T> decay_copy(T&& t) noexcept(traits::is_nothrow_convertible<T, traits::Decay<T>>) {
+      return frt::forward<T>(t);
+    }
+
+    template <typename T>
     concept MaybeBorrowedRange = traits::is_lvalue_reference<T> || enable_borrowed_range<T>;
 
     template <typename T>
-    concept MemberBegin = requires(T& object) {
-      { object.begin() } -> InputOrOutputIterator;
-    };
+    concept ClassOrEnum = traits::is_class<T> || traits::is_enum<T>;
 
-    template <typename T>
-    concept MemberEnd = requires(T& object) {
-      { object.end() } -> InputOrOutputIterator;
-    };
+    template <typename To, typename From> constexpr decltype(auto) forwarding_as_const(From& object) noexcept {
+      static_assert(SameAs<To&, From&>);
 
-    template <typename T>
-    concept MemberRBegin = requires(T& object) {
-      { object.rbegin() } -> InputOrOutputIterator;
-    };
-
-    template <typename T>
-    concept MemberREnd = requires(T& object) {
-      { object.rend() } -> InputOrOutputIterator;
-    };
-
-    template <typename T>
-    concept MemberCRBegin = requires(T& object) {
-      { object.crbegin() } -> InputOrOutputIterator;
-    };
-
-    template <typename T>
-    concept MemberCREnd = requires(T& object) {
-      { object.crend() } -> InputOrOutputIterator;
-    };
-
-    template <typename T>
-    concept MemberSize = requires(T& object) {
-      { object.size() } -> InputOrOutputIterator;
-    };
-
-    template <typename T>
-    concept MemberData = requires(T& object) {
-      { object.data() } -> InputOrOutputIterator;
-    };
-
-    template <typename T>
-    concept MemberCData = requires(T& object) {
-      { object.cdata() } -> InputOrOutputIterator;
-    };
+      if constexpr (traits::is_lvalue_reference<To>) {
+        return const_cast<const From&>(object);
+      } else {
+        return static_cast<const From&&>(object);
+      }
+    }
   } // namespace internal
 
   namespace ranges_access_internal {
     template <typename T>
-    concept ADLBegin = requires(T& object) {
-      { begin(object) } -> InputOrOutputIterator;
+    concept MemberBegin = requires(T& object) {
+      { internal::decay_copy(object.begin()) } -> InputOrOutputIterator;
     };
 
     template <typename T>
-    concept ADLEnd = requires(T& object) {
-      { end(object) } -> InputOrOutputIterator;
-    };
-
-    template <typename T>
-    concept ADLRBegin = requires(T& object) {
-      { rbegin(object) } -> InputOrOutputIterator;
-    };
-
-    template <typename T>
-    concept ADLREnd = requires(T& object) {
-      { rend(object) } -> InputOrOutputIterator;
-    };
-
-    template <typename T>
-    concept ADLSize = requires(T& object) {
-      { size(object) } -> InputOrOutputIterator;
-    };
-
-    template <typename T>
-    concept ADLData = requires(T& object) {
-      { data(object) } -> InputOrOutputIterator;
-    };
-
-    template <typename T>
-    concept ADLEmpty = requires(T& object) {
-      { crend(object) } -> InputOrOutputIterator;
+    concept ADLBegin = internal::ClassOrEnum<traits::RemoveReference<T>> && requires(T& object) {
+      { internal::decay_copy(begin(object)) } -> InputOrOutputIterator;
     };
 
     struct Begin {
@@ -110,7 +58,7 @@ namespace frt {
       template <typename T> static constexpr bool is_noexcept() {
         if constexpr (traits::is_array<traits::RemoveReference<T>>) {
           return true;
-        } else if constexpr (internal::MemberBegin<T>) {
+        } else if constexpr (MemberBegin<T>) {
           return noexcept(traits::declval<T&>().begin());
         } else {
           return noexcept(begin(traits::declval<T&>()));
@@ -119,16 +67,30 @@ namespace frt {
 
     public:
       template <internal::MaybeBorrowedRange T>
-      requires traits::is_array<traits::RemoveReference<T>> || internal::MemberBegin<T> || ADLBegin<T>
+      requires traits::is_array<traits::RemoveReference<T>> || MemberBegin<T> || ADLBegin<T>
       constexpr auto operator()(T&& object) const noexcept(is_noexcept<T>()) {
         if constexpr (traits::is_array<traits::RemoveReference<T>>) {
           return object + 0;
-        } else if constexpr (internal::MemberBegin<T>) {
+        } else if constexpr (MemberBegin<T>) {
           return object.begin();
         } else {
           return begin(object);
         }
       }
+    };
+  } // namespace ranges_access_internal
+
+  namespace ranges_access_internal {
+    template <typename R> using RangeIter = decltype(Begin{}(traits::declval<R&>()));
+
+    template <typename T>
+    concept MemberEnd = requires(T& object) {
+      { internal::decay_copy(object.end()) } -> SentinelFor<RangeIter<T>>;
+    };
+
+    template <typename T>
+    concept ADLEnd = internal::ClassOrEnum<traits::RemoveReference<T>> && requires(T& object) {
+      { internal::decay_copy(end(object)) } -> SentinelFor<RangeIter<T>>;
     };
 
     struct End {
@@ -136,7 +98,7 @@ namespace frt {
       template <typename T> static constexpr bool is_noexcept() {
         if constexpr (traits::is_array<traits::RemoveReference<T>>) {
           return true;
-        } else if constexpr (internal::MemberEnd<T>) {
+        } else if constexpr (MemberEnd<T>) {
           return noexcept(traits::declval<T&>().end());
         } else {
           return noexcept(end(traits::declval<T&>()));
@@ -145,11 +107,11 @@ namespace frt {
 
     public:
       template <internal::MaybeBorrowedRange T>
-      requires traits::is_bounded_array<traits::RemoveReference<T>> || internal::MemberEnd<T> || ADLEnd<T>
+      requires traits::is_bounded_array<traits::RemoveReference<T>> || MemberEnd<T> || ADLEnd<T>
       constexpr auto operator()(T&& object) const noexcept(is_noexcept<T>()) {
         if constexpr (traits::is_bounded_array<traits::RemoveReference<T>>) {
           return object + traits::extent<traits::RemoveReference<T>>;
-        } else if constexpr (internal::MemberEnd<T>) {
+        } else if constexpr (MemberEnd<T>) {
           return object.end();
         } else {
           return end(object);
@@ -160,16 +122,18 @@ namespace frt {
     struct CBegin {
       template <internal::MaybeBorrowedRange T>
       constexpr auto operator()(T&& object) const
-          noexcept(noexcept(Begin{}(frt::as_const(object)))) requires(requires { Begin{}(frt::as_const(object)); }) {
-        return Begin{}(frt::as_const(object));
+          noexcept(noexcept(Begin{}(internal::forwarding_as_const<T>(object)))) requires(
+              requires { Begin{}(internal::forwarding_as_const<T>(object)); }) {
+        return Begin{}(internal::forwarding_as_const<T>(object));
       }
     };
 
     struct CEnd {
       template <internal::MaybeBorrowedRange T>
       constexpr auto operator()(T&& object) const
-          noexcept(noexcept(End{}(frt::as_const(object)))) requires(requires { End{}(frt::as_const(object)); }) {
-        return End{}(frt::as_const(object));
+          noexcept(noexcept(End{}(internal::forwarding_as_const<T>(object)))) requires(
+              requires { End{}(internal::forwarding_as_const<T>(object)); }) {
+        return End{}(internal::forwarding_as_const<T>(object));
       }
     };
 
@@ -179,10 +143,20 @@ namespace frt {
       { End{}(t) } -> SameAs<decltype(Begin{}(t))>;
     };
 
+    template <typename T>
+    concept MemberRBegin = requires(T& object) {
+      { internal::decay_copy(object.rbegin()) } -> InputOrOutputIterator;
+    };
+
+    template <typename T>
+    concept ADLRBegin = internal::ClassOrEnum<traits::RemoveReference<T>> && requires(T& object) {
+      { internal::decay_copy(rbegin(object)) } -> InputOrOutputIterator;
+    };
+
     struct RBegin {
     private:
       template <typename T> static constexpr bool is_noexcept() {
-        if constexpr (internal::MemberRBegin<T>) {
+        if constexpr (MemberRBegin<T>) {
           return noexcept(traits::declval<T&>().rbegin());
         } else if constexpr (ADLRBegin<T>) {
           return noexcept(rbegin(traits::declval<T&>()));
@@ -193,9 +167,9 @@ namespace frt {
 
     public:
       template <internal::MaybeBorrowedRange T>
-      requires Reversable<T> || internal::MemberRBegin<T> || ADLRBegin<T>
+      requires Reversable<T> || MemberRBegin<T> || ADLRBegin<T>
       constexpr auto operator()(T&& object) const noexcept(is_noexcept<T>()) {
-        if constexpr (internal::MemberBegin<T>) {
+        if constexpr (MemberBegin<T>) {
           return object.rbegin();
         } else if constexpr (ADLRBegin<T>) {
           return rbegin(object);
@@ -205,13 +179,23 @@ namespace frt {
       }
     };
 
+    template <typename T>
+    concept MemberREnd = requires(T& object) {
+      { internal::decay_copy(object.rend()) } -> SentinelFor<decltype(RBegin{}(object))>;
+    };
+
+    template <typename T>
+    concept ADLREnd = internal::ClassOrEnum<traits::RemoveReference<T>> && requires(T& object) {
+      { internal::decay_copy(rend(object)) } -> SentinelFor<decltype(RBegin{}(object))>;
+    };
+
     struct REnd {
     private:
       template <typename T> static constexpr bool is_noexcept() {
-        if constexpr (internal::MemberRBegin<T>) {
-          return noexcept(traits::declval<T&>().rbegin());
-        } else if constexpr (ADLRBegin<T>) {
-          return noexcept(rbegin(traits::declval<T&>()));
+        if constexpr (MemberREnd<T>) {
+          return noexcept(traits::declval<T&>().rend());
+        } else if constexpr (ADLREnd<T>) {
+          return noexcept(rend(traits::declval<T&>()));
         } else {
           return noexcept(Begin{}(traits::declval<T&>()));
         }
@@ -219,12 +203,12 @@ namespace frt {
 
     public:
       template <internal::MaybeBorrowedRange T>
-      requires Reversable<T> || internal::MemberRBegin<T> || ADLRBegin<T>
+      requires Reversable<T> || MemberREnd<T> || ADLREnd<T>
       constexpr auto operator()(T&& object) const noexcept(is_noexcept<T>()) {
-        if constexpr (internal::MemberBegin<T>) {
-          return object.rbegin();
-        } else if constexpr (ADLRBegin<T>) {
-          return rbegin(object);
+        if constexpr (MemberREnd<T>) {
+          return object.rend();
+        } else if constexpr (ADLREnd<T>) {
+          return rend(object);
         } else {
           return frt::make_reverse_iterator(Begin{}(object));
         }
@@ -234,16 +218,18 @@ namespace frt {
     struct CRBegin {
       template <internal::MaybeBorrowedRange T>
       constexpr auto operator()(T&& object) const
-          noexcept(noexcept(Begin{}(frt::as_const(object)))) requires(requires { RBegin{}(frt::as_const(object)); }) {
-        return RBegin{}(frt::as_const(object));
+          noexcept(noexcept(RBegin{}(internal::forwarding_as_const<T>(object)))) requires(
+              requires { RBegin{}(internal::forwarding_as_const<T>(object)); }) {
+        return RBegin{}(internal::forwarding_as_const<T>(object));
       }
     };
 
     struct CREnd {
       template <internal::MaybeBorrowedRange T>
       constexpr auto operator()(T&& object) const
-          noexcept(noexcept(Begin{}(frt::as_const(object)))) requires(requires { REnd{}(frt::as_const(object)); }) {
-        return REnd{}(frt::as_const(object));
+          noexcept(noexcept(REnd{}(internal::forwarding_as_const<T>(object)))) requires(
+              requires { REnd{}(internal::forwarding_as_const<T>(object)); }) {
+        return REnd{}(internal::forwarding_as_const<T>(object));
       }
     };
   } // namespace ranges_access_internal
@@ -270,10 +256,6 @@ namespace frt {
   template <typename R> using RangeReference = frt::IterReference<RangeIterator<R>>;
 
   template <typename R> using RangeRvalueReference = frt::IterRvalueReference<RangeIterator<R>>;
-
-  template <typename R> using RangeIterator = decltype(frt::begin(traits::declval<R&>()));
-
-  template <typename R> using RangeIterator = decltype(frt::begin(traits::declval<R&>()));
 
   template <typename R>
   concept Range = requires(R range) {
@@ -306,34 +288,160 @@ namespace frt {
   concept CommonRange = Range<R> && SameAs<RangeIterator<R>, RangeSentinel<R>>;
 
   namespace ranges_access_internal {
-    template <frt::Integral T> constexpr auto to_unsigned_like(T x) noexcept {
-      return static_cast<traits::MakeUnsigned<T>>(x);
+    template <typename T>
+    requires Integral<traits::RemoveCV<T>>
+    constexpr auto to_unsigned_like(T x) noexcept {
+      return static_cast<traits::MakeUnsigned<traits::RemoveCV<T>>>(x);
     }
+
+    template <typename T>
+    requires Integral<traits::RemoveCV<T>>
+    constexpr auto to_signed_like(T x) noexcept {
+      return static_cast<frt::isize>(x);
+    }
+
+    template <typename T>
+    concept NotSizeDisabled = !disable_sized_range<traits::RemoveCVRef<T>>;
+
+    template <typename T>
+    concept MemberSize = NotSizeDisabled<T> && requires(T & object) {
+      { internal::decay_copy(object.size()) } -> Integral;
+    };
+
+    template <typename T>
+    concept ADLSize = internal::ClassOrEnum<traits::RemoveReference<T>> && NotSizeDisabled<T> && requires(T & object) {
+      { internal::decay_copy(size(object)) } -> Integral;
+    };
 
     struct Size {
     private:
       template <typename T> static constexpr bool is_noexcept() {
-        if constexpr (internal::MemberRBegin<T>) {
-          return noexcept(traits::declval<T&>().rbegin());
-        } else if constexpr (ADLRBegin<T>) {
-          return noexcept(rbegin(traits::declval<T&>()));
+        if constexpr (MemberSize<T>) {
+          return noexcept(traits::declval<T&>().size());
+        } else if constexpr (ADLSize<T>) {
+          return noexcept(size(traits::declval<T&>()));
         } else {
-          return noexcept(Begin{}(traits::declval<T&>()));
+          return noexcept(End{}(traits::declval<T&>() - Begin{}(traits::declval<T&>())));
         }
       }
 
     public:
-      template <internal::MaybeBorrowedRange T>
-      requires Reversable<T> || internal::MemberRBegin<T> || ADLRBegin<T>
+      template <typename T>
+      requires traits::is_bounded_array<traits::RemoveReference<T>> || MemberSize<T> || ADLSize<T>
       constexpr auto operator()(T&& object) const noexcept(is_noexcept<T>()) {
-        if constexpr (internal::MemberBegin<T>) {
-          return object.rbegin();
-        } else if constexpr (ADLRBegin<T>) {
-          return rbegin(object);
-        } else {
-          return frt::make_reverse_iterator(Begin{}(object));
+        if constexpr (traits::is_bounded_array<traits::RemoveReference<T>>) {
+          return traits::extent<traits::RemoveReference<T>>;
+        } else if constexpr (MemberSize<T> && NotSizeDisabled<T> && frt::Integral<decltype(object.size())>) {
+          return ranges_access_internal::to_unsigned_like(object.size());
+        } else if constexpr (ADLSize<T> && NotSizeDisabled<T>) {
+          return ranges_access_internal::to_unsigned_like(size(object));
+        } else if constexpr (ForwardRange<T> && SizedSentinelFor<RangeSentinel<T>, RangeIterator<T>>) {
+          return ranges_access_internal::to_unsigned_like(frt::end(object) - frt::begin(object));
         }
       }
     };
+
+    struct SSize {
+      template <typename T>
+      requires requires(T&& object) {
+        ranges_access_internal::to_signed_like(Size{}(object));
+      }
+      constexpr auto operator()(T&& object) const noexcept(Size{}(traits::declval<T&&>())) {
+        return ranges_access_internal::to_signed_like(Size{}(frt::forward<T>(object)));
+      }
+    };
+
+    template <typename T>
+    concept MemberEmpty = requires(T & object) {
+      { internal::decay_copy(object.empty()) } -> internal::BooleanTestable;
+    };
+
+    template <typename T>
+    concept SizeComparable = requires(T && object) {
+      Size{}(object) == 0;
+    };
+
+    struct Empty {
+    private:
+      template <typename T> static constexpr bool is_noexcept() {
+        if constexpr (MemberEmpty<T>) {
+          return noexcept(traits::declval<T&&>().empty());
+        } else if constexpr (requires(T && object) { Size{}(object) == 0; }) {
+          return noexcept(Size{}(traits::declval<T&&>()) == 0);
+        } else {
+          return noexcept(bool(frt::begin(traits::declval<T&&>()) == frt::end(traits::declval<T&&>())));
+        }
+      }
+
+    public:
+      template <typename T>
+      requires MemberEmpty<T> || SizeComparable<T> || ForwardRange<T>
+      constexpr bool operator()(T&& object) const noexcept(is_noexcept<T>()) {
+        if constexpr (MemberEmpty<T>) {
+          return bool(object.empty());
+        } else if constexpr (SizeComparable<T>) {
+          return bool(Size{}(object) == 0);
+        } else {
+          return bool(frt::begin(object) == frt::end(object));
+        }
+      }
+    };
+
+    template <typename T>
+    concept PointerToObject = traits::is_pointer<T> && traits::is_object<traits::RemovePointer<T>>;
+
+    template <typename T>
+    concept MemberData = requires(T && object) {
+      { internal::decay_copy(object.data()) } -> PointerToObject;
+    };
+
+    template <typename T>
+    concept ContiguousBegin = frt::ContiguousIterator<RangeIterator<T>>;
+
+    struct Data {
+    private:
+      template <typename T> static constexpr bool is_noexcept() {
+        if constexpr (MemberData<T>) {
+          return noexcept(traits::declval<T&&>().data());
+        } else {
+          return noexcept(frt::to_address(frt::begin(traits::declval<T&&>())));
+        }
+      }
+
+    public:
+      template <typename T>
+      requires MemberData<T> || ContiguousBegin<T>
+      constexpr bool operator()(T&& object) const noexcept(is_noexcept<T>()) {
+        if constexpr (MemberData<T>) {
+          return frt::forward<T>(object).data();
+        } else {
+          return frt::to_address(frt::begin(frt::forward<T>(object)));
+        }
+      }
+    };
+
+    struct CData {
+      template <typename T>
+      requires requires(T&& object) {
+        Data{}(internal::forwarding_as_const<T>(object));
+      }
+      constexpr auto operator()(T&& object) const
+          noexcept(Data{}(internal::forwarding_as_const<T>(traits::declval<T&&>()))) {
+        return Data{}(internal::forwarding_as_const<T>(object));
+      }
+    };
   } // namespace ranges_access_internal
+
+  inline namespace ranges_access {
+    inline constexpr ranges_access_internal::Size size = ranges_access_internal::Size{};
+    inline constexpr ranges_access_internal::SSize ssize = ranges_access_internal::SSize{};
+    inline constexpr ranges_access_internal::Empty empty = ranges_access_internal::Empty{};
+    inline constexpr ranges_access_internal::Data data = ranges_access_internal::Data{};
+    inline constexpr ranges_access_internal::CData cdata = ranges_access_internal::CData{};
+  } // namespace ranges_access
+
+  template <typename T>
+  concept SizedRange = frt::Range<T> && requires(T& t) {
+    frt::size(t);
+  };
 } // namespace frt

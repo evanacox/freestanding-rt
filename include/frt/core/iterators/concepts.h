@@ -151,7 +151,7 @@ namespace frt {
   };
 
   template <typename S, typename I>
-  concept SentinelFor = SemiRegular<S> && InputOrOutputIterator<I> && __WeaklyEqualityComparableWith<S, I>;
+  concept SentinelFor = SemiRegular<S> && InputOrOutputIterator<I> && internal::WeaklyEqualityComparableWith<S, I>;
 
   // customization point
   template <typename S, typename I> constexpr bool disable_sized_sentinel_for = false;

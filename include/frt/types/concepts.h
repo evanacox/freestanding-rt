@@ -172,31 +172,33 @@ namespace frt {
       MoveConstructible<T> && ConstructibleFrom<T, T&> && ConvertibleTo<T&, T> && ConstructibleFrom<T,
           const T&> && ConvertibleTo<const T&, T> && ConstructibleFrom<T, const T> && ConvertibleTo<const T, T>;
 
-  /// Models a type that is able to be converted to `bool` and has "normal" logical operators
-  ///
-  /// Semantic requirements: see https://en.cppreference.com/w/cpp/concepts/boolean-testable
-  ///
-  /// \tparam T
-  template <typename T>
-  concept __BooleanTestable = ConvertibleTo<T, bool> && requires(T&& t) {
-    { !frt::forward<T>(t) } -> ConvertibleTo<bool>;
-  };
+  namespace internal {
+    /// Models a type that is able to be converted to `bool` and has "normal" logical operators
+    ///
+    /// Semantic requirements: see https://en.cppreference.com/w/cpp/concepts/boolean-testable
+    ///
+    /// \tparam T
+    template <typename T>
+    concept BooleanTestable = ConvertibleTo<T, bool> && requires(T && t) {
+      { !frt::forward<T>(t) } -> ConvertibleTo<bool>;
+    };
 
-  /// Specifies that comparing type `T` and `U` with equality operators (in either order)
-  /// yield meaningful and consistent results
-  ///
-  /// Semantic requirements: see https://en.cppreference.com/w/cpp/concepts/equality_comparable
-  ///
-  /// \tparam T The first type to check
-  /// \tparam U The second type to check
-  template <typename T, typename U>
-  concept __WeaklyEqualityComparableWith = requires(const traits::RemoveReference<T>& t,
-      const traits::RemoveReference<U>& u) {
-    { t == u } -> __BooleanTestable;
-    { t != u } -> __BooleanTestable;
-    { u == t } -> __BooleanTestable;
-    { u != t } -> __BooleanTestable;
-  };
+    /// Specifies that comparing type `T` and `U` with equality operators (in either order)
+    /// yield meaningful and consistent results
+    ///
+    /// Semantic requirements: see https://en.cppreference.com/w/cpp/concepts/equality_comparable
+    ///
+    /// \tparam T The first type to check
+    /// \tparam U The second type to check
+    template <typename T, typename U>
+    concept WeaklyEqualityComparableWith =
+        requires(const traits::RemoveReference<T>& t, const traits::RemoveReference<U>& u) {
+      { t == u } -> BooleanTestable;
+      { t != u } -> BooleanTestable;
+      { u == t } -> BooleanTestable;
+      { u != t } -> BooleanTestable;
+    };
+  } // namespace internal
 
   /// Specifies that comparing instances of type `T` produce meaningful and consistent results
   ///
@@ -204,7 +206,7 @@ namespace frt {
   ///
   /// \tparam T The type to check
   template <typename T>
-  concept EqualityComparable = __WeaklyEqualityComparableWith<T, T>;
+  concept EqualityComparable = internal::WeaklyEqualityComparableWith<T, T>;
 
   /// Specifies that comparing type `T` and `U` with equality operators (in either order)
   /// yield meaningful and consistent results as-if they were being compared after being converted to their common type
@@ -218,27 +220,30 @@ namespace frt {
       traits::AddLValueReference<const traits::RemoveReference<T>>,
       traits::AddLValueReference<const traits::RemoveReference<U>>> && EqualityComparable<traits::
           CommonReference<traits::AddLValueReference<const traits::RemoveReference<T>>,
-              traits::AddLValueReference<const traits::RemoveReference<U>>>> && __WeaklyEqualityComparableWith<T, U>;
+              traits::AddLValueReference<const traits::RemoveReference<U>>>> && internal::
+      WeaklyEqualityComparableWith<T, U>;
 
-  /// Specifies that comparing type `T` and `U` with comparison operators (in either order)
-  /// yield meaningful and consistent results
-  ///
-  /// Semantic requirements: see https://en.cppreference.com/w/cpp/concepts/totally_ordered
-  ///
-  /// \tparam T The first type to check
-  /// \tparam U The second type to check
-  template <typename T, typename U>
-  concept __PartiallyOrderedWith = requires(traits::AddLValueReference<const traits::RemoveReference<T>> t,
-      traits::AddLValueReference<const traits::RemoveReference<U>> u) {
-    { t < u } -> __BooleanTestable;
-    { t > u } -> __BooleanTestable;
-    { t <= u } -> __BooleanTestable;
-    { t >= u } -> __BooleanTestable;
-    { u < t } -> __BooleanTestable;
-    { u > t } -> __BooleanTestable;
-    { u <= t } -> __BooleanTestable;
-    { u >= t } -> __BooleanTestable;
-  };
+  namespace internal {
+    /// Specifies that comparing type `T` and `U` with comparison operators (in either order)
+    /// yield meaningful and consistent results
+    ///
+    /// Semantic requirements: see https://en.cppreference.com/w/cpp/concepts/totally_ordered
+    ///
+    /// \tparam T The first type to check
+    /// \tparam U The second type to check
+    template <typename T, typename U>
+    concept PartiallyOrderedWith = requires(traits::AddLValueReference<const traits::RemoveReference<T>> t,
+        traits::AddLValueReference<const traits::RemoveReference<U>> u) {
+      { t < u } -> BooleanTestable;
+      { t > u } -> BooleanTestable;
+      { t <= u } -> BooleanTestable;
+      { t >= u } -> BooleanTestable;
+      { u < t } -> BooleanTestable;
+      { u > t } -> BooleanTestable;
+      { u <= t } -> BooleanTestable;
+      { u >= t } -> BooleanTestable;
+    };
+  } // namespace internal
 
   /// Specifies that objects of type `T` can be compared using comparison operators, and their results
   /// are meaningful and consistent.
@@ -247,7 +252,7 @@ namespace frt {
   ///
   /// \tparam T The first type
   template <typename T>
-  concept TotallyOrdered = EqualityComparable<T> && __PartiallyOrderedWith<T, T>;
+  concept TotallyOrdered = EqualityComparable<T> && internal::PartiallyOrderedWith<T, T>;
 
   /// Specifies that objects of type `T` and objects of type `U` can be compared using comparison operators, and their
   /// results are meaningful and consistent. If they are compared in mixed-form, the results are equivalent to
@@ -260,7 +265,7 @@ namespace frt {
   template <typename T, typename U>
   concept TotallyOrderedWith = TotallyOrdered<T> && TotallyOrdered<U> && EqualityComparableWith<T,
       U> && TotallyOrdered<traits::CommonReference<traits::AddLValueReference<const traits::RemoveReference<T>>,
-      traits::AddLValueReference<const traits::RemoveReference<U>>>> && __PartiallyOrderedWith<T, U>;
+      traits::AddLValueReference<const traits::RemoveReference<U>>>> && internal::PartiallyOrderedWith<T, U>;
 
   /// Checks if a type is trivially copyable
   ///
@@ -350,7 +355,7 @@ namespace frt {
   /// \tparam F The callable type
   /// \tparam Args A set of arguments to pass to the callable
   template <typename F, typename... Args>
-  concept Predicate = RegularInvocable<F, Args...> && __BooleanTestable<traits::InvokeResult<F, Args...>>;
+  concept Predicate = RegularInvocable<F, Args...> && internal::BooleanTestable<traits::InvokeResult<F, Args...>>;
 
   /// Specifies that a callable defines a binary relation over the values of `T` and `U`.
   ///
