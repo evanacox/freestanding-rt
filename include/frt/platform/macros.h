@@ -23,6 +23,9 @@
 #define FRT_ALWAYS_INLINE inline
 #define FRT_PURE
 #define FRT_COLD
+#define FRT_NEVER_INLINE
+#define FRT_UNLIKELY(expr) (expr)
+#define FRT_LIKELY(expr) (expr)
 #endif
 
 #define FRT_STRINGIFY1(s) #s
