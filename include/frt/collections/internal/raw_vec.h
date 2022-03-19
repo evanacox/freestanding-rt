@@ -88,7 +88,7 @@ namespace frt {
         return push_end(value);
       }
 
-      template <typename... Args> constexpr reference emplace_back(Args&&... value) {
+      template <typename... Args> constexpr reference emplace_back(Args&&... /*unused*/) {
         //
       }
 

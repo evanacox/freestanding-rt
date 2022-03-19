@@ -131,7 +131,7 @@ namespace frt {
     }
 
     // need to account for promotion with the cast
-    return countl_zero(static_cast<T>(~value));
+    return frt::countl_zero(static_cast<T>(~static_cast<T>(value)));
 #endif
   }
 
@@ -172,7 +172,7 @@ namespace frt {
     }
 
     // need to account for promotion with the cast
-    return frt::countl_zero(static_cast<T>(~value));
+    return frt::countr_zero(static_cast<T>(~static_cast<T>(value)));
 #endif
   }
 
@@ -246,7 +246,7 @@ namespace frt {
       return 0;
     }
 
-    return static_cast<T>(1) << frt::bit_width<T>(value);
+    return static_cast<T>(1) << (frt::bit_width<T>(value) - 1);
 #endif
   }
 
@@ -278,13 +278,13 @@ namespace frt {
 #if defined(FRT_HAVE_STDLIB) && __cpp_lib_bitops >= 201907L
     return std::rotl(value);
 #else
-    static_assert(frt::has_single_bit(NumericLimits<T>::digits), "please use a better platform");
+    static_assert(frt::has_single_bit(static_cast<T>(NumericLimits<T>::digits)), "please use a better platform");
 
     auto s = static_cast<T>(shift_by);
     auto bits = static_cast<T>(NumericLimits<T>::digits);
 
     // GCC and Clang can both recognize this and turn it into the platform's rotate instruction
-    return (value << frt::modulo_pow2(s, bits)) | (value >> frt::modulo_pow2(-s, bits));
+    return (value << frt::modulo_pow2<T>(s, bits)) | (value >> frt::modulo_pow2<T>(-s, bits));
 #endif
   }
 
@@ -297,13 +297,13 @@ namespace frt {
 #if defined(FRT_HAVE_STDLIB) && __cpp_lib_bitops >= 201907L
     return std::rotr(value);
 #else
-    static_assert(frt::has_single_bit(NumericLimits<T>::digits), "please use a better platform");
+    static_assert(frt::has_single_bit(static_cast<T>(NumericLimits<T>::digits)), "please use a better platform");
 
     auto s = static_cast<T>(shift_by);
     auto bits = static_cast<T>(NumericLimits<T>::digits);
 
     // GCC and Clang can both recognize this and turn it into the platform's rotate instruction
-    return (value >> frt::modulo_pow2(s, bits)) | (value << frt::modulo_pow2(-s, bits));
+    return (value >> frt::modulo_pow2<T>(s, bits)) | (value << frt::modulo_pow2<T>(-s, bits));
 #endif
   }
 } // namespace frt

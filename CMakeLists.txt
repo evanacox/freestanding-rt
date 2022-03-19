@@ -19,6 +19,7 @@ option(FRT_HAS_ASSERT_FAIL "Whether to build assuming there is a `__frt_assert_f
 option(FRT_HAS_TRIED_THROW "Whether to build assuming there is a `__frt_tried_alloc` implementation" OFF)
 option(FRT_HAS_BOUNDS_FAIL "Whether to build assuming there is a `__frt_bounds_fail` implementation" OFF)
 option(FRT_DEV "Whether to build with the developer's personal settings" OFF)
+option(FRT_TEST "Whether to build the test suite" OFF)
 
 if (FRT_DEV)
     set(FRT_HAS_ASSERT_FAIL OFF)
@@ -92,14 +93,5 @@ function(frt_configure_target TARGET)
     target_compile_features(${TARGET} PUBLIC cxx_std_20)
 endfunction()
 
-add_library(frt
-        src/rt.cc
-        src/platform/new.cc
-        src/runtime/ubsan.cc
-        src/runtime/assert.cc
-        src/runtime/failures.cc
-        src/sync/spin_mutex.cc
-        src/sync/ticket_mutex.cc
-        src/core/memory.cc)
-frt_configure_target(frt)
-target_include_directories(frt PUBLIC include)
+add_subdirectory(src)
+add_subdirectory(tests)

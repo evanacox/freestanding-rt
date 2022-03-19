@@ -124,6 +124,7 @@ namespace frt {
     using reference = T&;
     using iterator_category = frt::RandomIteratorTag;
     using iterator_concept = frt::ContiguousIteratorTag;
+    using __frt_iterator_traits_primary = void;
   };
 
   namespace internal {
@@ -132,24 +133,33 @@ namespace frt {
       typename IteratorTraits<I>::__frt_iterator_traits_primary;
     };
 
-    template <typename I> struct IterConcept;
+    template <typename I> struct IterConceptTraits { using type = IteratorTraits<I>; };
 
-    template <typename I>
-    requires IsFromPrimary<I> && requires {
-      I::iterator_concept;
-    }
-    struct IterConcept<I> : I::iterator_concept {};
+    template <IsFromPrimary I> struct IterConceptTraits<I> { using type = I; };
 
-    template <typename I>
-    requires IsFromPrimary<I> && requires {
-      I::iterator_category;
-    }
-    struct IterConcept<I> : I::iterator_category {};
-
-    template <typename I>
-    requires IsFromPrimary<I>
-    struct IterConcept<I> : RandomTag {
+    template <typename I> struct IterConcept2 {
+      using type = traits::EnableIf<IsFromPrimary<I>, frt::RandomIteratorTag>;
     };
+
+    template <typename I>
+    requires requires {
+      typename IterConceptTraits<I>::iterator_category;
+    }
+    struct IterConcept2<I> {
+      using type = typename IterConceptTraits<I>::iterator_category;
+    };
+
+    template <typename I> struct IterConcept1 : IterConcept2<I> {};
+
+    template <typename I>
+    requires requires {
+      typename IterConceptTraits<I>::iterator_concept;
+    }
+    struct IterConcept1<I> {
+      using type = typename IterConceptTraits<I>::iterator_concept;
+    };
+
+    template <typename I> using IterConcept = typename IterConcept1<I>::type;
   } // namespace internal
 
   template <typename I>

@@ -23,9 +23,7 @@ namespace frt {
   ///
   /// \tparam T The type held in the array
   /// \tparam N The length of the array
-  template <typename T, frt::usize N, frt::usize Align = alignof(T)>
-  struct Array // NOLINT(fuchsia-trailing-return)
-  {
+  template <typename T, frt::usize N, frt::usize Align = alignof(T)> struct Array { // NOLINT(fuchsia-trailing-return)
     using value_type = T;
     using size_type = frt::usize;
     using difference_type = frt::isize;
@@ -48,7 +46,7 @@ namespace frt {
         frt::bounds_fail("array index out of bounds");
       }
 
-      return __array[index];
+      return __a[index];
     }
 
     /// Performs a bounds-checked array access. If the index is out of bounds, `frt::bounds_fail`
@@ -61,7 +59,7 @@ namespace frt {
         frt::bounds_fail("array index out of bounds");
       }
 
-      return __array[index];
+      return __a[index];
     }
 
     /// Performs an unchecked array access. If the index is out of bounds, the behavior
@@ -72,7 +70,7 @@ namespace frt {
     [[nodiscard]] constexpr reference operator[](size_type index) noexcept {
       FRT_ASSERT(index < N, "index must be in bounds of array");
 
-      return __array[index];
+      return __a[index];
     }
 
     /// Performs an unchecked array access. If the index is out of bounds, the behavior
@@ -83,35 +81,35 @@ namespace frt {
     [[nodiscard]] constexpr const_reference operator[](size_type index) const noexcept {
       FRT_ASSERT(index < N, "index must be in bounds of array");
 
-      return __array[index];
+      return __a[index];
     }
 
     /// Gets the first element of the array. Equivalent to `[0]`.
     ///
     /// \return `array[0]`
     [[nodiscard]] constexpr reference front() noexcept {
-      return __array[0];
+      return __a[0];
     }
 
     /// Gets the first element of the array. Equivalent to `[0]`.
     ///
     /// \return `array[0]`
     [[nodiscard]] constexpr const_reference front() const noexcept {
-      return __array[0];
+      return __a[0];
     }
 
     /// Gets the last element of the array. Equivalent to `[N - 1]`.
     ///
     /// \return `array[N - 1]`
     [[nodiscard]] constexpr reference back() noexcept {
-      return __array[N - 1];
+      return __a[N - 1];
     }
 
     /// Gets the last element of the array. Equivalent to `[N - 1]`.
     ///
     /// \return `array[N - 1]`
     [[nodiscard]] constexpr const_reference back() const noexcept {
-      return __array[N - 1];
+      return __a[N - 1];
     }
 
     /// Gets a pointer to the first element of the array. This array is valid to access
@@ -119,7 +117,7 @@ namespace frt {
     ///
     /// \return `&array[0]`
     [[nodiscard]] constexpr pointer data() noexcept {
-      return __array;
+      return __a;
     }
 
     /// Gets a pointer to the first element of the array. This array is valid to access
@@ -127,7 +125,7 @@ namespace frt {
     ///
     /// \return `&array[0]`
     [[nodiscard]] constexpr const_pointer data() const noexcept {
-      return __array;
+      return __a;
     }
 
     /// Checks if the array has no elements
@@ -201,7 +199,7 @@ namespace frt {
 
     constexpr void swap(Array& other) noexcept(traits::is_nothrow_swappable<T>) {
       for (auto i = size_type{0}; i < N; ++i) {
-        frt::swap(__array[i], other.__array[i]);
+        frt::swap(__a[i], other.__a[i]);
       }
     }
 
@@ -211,7 +209,7 @@ namespace frt {
       }
     }
 
-    T __array[N]; // NOLINT(modernize-avoid-c-arrays, misc-non-private-member-variables-in-classes)
+    T __a[N]; // NOLINT(modernize-avoid-c-arrays, misc-non-private-member-variables-in-classes)
   };
 
   template <typename T, typename... Args>
