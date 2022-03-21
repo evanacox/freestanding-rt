@@ -102,7 +102,7 @@ namespace frt {
   /// \param value The value to set to the range
   /// \param length The number of bytes to set
   /// \return `to`
-  FRT_ALWAYS_INLINE void* mem_set(void* to, frt::byte value, frt::isize length) noexcept {
+  FRT_ALWAYS_INLINE void* mem_set(void* to, frt::ubyte value, frt::isize length) noexcept {
     // enables better optimization based on the forced inlining & compiler knowledge
     // of what `memset` does, may be optimized out with a constant size
     return ::memset(to, static_cast<int>(value), static_cast<frt::usize>(length));

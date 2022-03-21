@@ -26,8 +26,8 @@ namespace frt {
   struct InputIteratorTag {};
   struct ForwardIteratorTag : InputIteratorTag {};
   struct BidirectionalIteratorTag : ForwardIteratorTag {};
-  struct RandomIteratorTag : BidirectionalIteratorTag {};
-  struct ContiguousIteratorTag : RandomIteratorTag {};
+  struct RandomAccessIteratorTag : BidirectionalIteratorTag {};
+  struct ContiguousIteratorTag : RandomAccessIteratorTag {};
   struct OutputIteratorTag {};
 #endif
 
@@ -35,7 +35,7 @@ namespace frt {
     using InputTag = InputIteratorTag;
     using ForwardTag = ForwardIteratorTag;
     using BidirectionTag = BidirectionalIteratorTag;
-    using RandomTag = RandomIteratorTag;
+    using RandomTag = RandomAccessIteratorTag;
     using ContiguousTag = ContiguousIteratorTag;
     using OutputTag = OutputIteratorTag;
   } // namespace internal

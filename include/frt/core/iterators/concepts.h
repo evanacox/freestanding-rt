@@ -133,7 +133,7 @@ namespace frt {
   };
 
   template <class I>
-  concept WeaklyIncrementable = DefaultInitializable<I> && Movable<I> && requires(I i) {
+  concept WeaklyIncrementable = Movable<I> && requires(I i) {
     typename IterDifference<I>;
     requires traits::is_signed<IterDifference<I>>;
     { ++i } -> SameAs<I&>;
@@ -195,7 +195,7 @@ namespace frt {
 
   template <typename I>
   concept RandomAccessIterator = BidirectionalIterator<I>
-      && DerivedFrom<internal::IterConcept<I>, RandomIteratorTag>
+      && DerivedFrom<internal::IterConcept<I>, RandomAccessIteratorTag>
       && TotallyOrdered<I>
       && SizedSentinelFor<I, I>
       && requires(I i, const I j, const IterDifference<I> n) {

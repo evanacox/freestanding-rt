@@ -12,7 +12,7 @@
 
 #include "../platform/compiler.h"
 #include "../platform/macros.h"
-#include "./basic.h"
+#include "basic.h"
 
 namespace frt::traits {
   namespace internal {
@@ -707,8 +707,8 @@ namespace frt::traits {
 #endif
 
   template <frt::isize Len, frt::isize Align> struct AlignedStorageTrait {
-    struct type {                         // NOLINT(readability-identifier-naming)
-      alignas(Align) frt::byte data[Len]; // NOLINT(modernize-avoid-c-arrays)
+    struct type {                          // NOLINT(readability-identifier-naming)
+      alignas(Align) frt::ubyte data[Len]; // NOLINT(modernize-avoid-c-arrays)
     };
   };
 
@@ -735,7 +735,7 @@ namespace frt::traits {
     // NOLINTNEXTLINE(readability-identifier-naming)
     struct type {
       // NOLINTNEXTLINE(modernize-avoid-c-arrays)
-      alignas(alignment_value) frt::byte data[internal::traits_max<Len, alignment_value>];
+      alignas(alignment_value) frt::ubyte data[internal::traits_max<Len, alignment_value>];
     };
   };
 

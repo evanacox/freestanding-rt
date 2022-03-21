@@ -16,6 +16,62 @@
 #include <iterator>
 
 namespace frt {
+  namespace internal {
+    template <typename T, frt::usize Address>
+    class IOPortForwardIterator
+        : public frt::IteratorInterface<IOPortForwardIterator<T, Address>, frt::ForwardIteratorTag, T> {
+    public:
+      IOPortForwardIterator() = default;
+
+      explicit IOPortForwardIterator(bool begin) : begin_{begin} {}
+
+      [[nodiscard]] volatile T& value() const noexcept {
+        return *address();
+      }
+
+      void next() noexcept {
+        begin_ = false;
+      }
+
+      [[nodiscard]] bool eq(IOPortForwardIterator other) const noexcept {
+        return begin_ && other.begin_;
+      }
+
+    private:
+      [[nodiscard]] volatile T* address() const noexcept {
+        return reinterpret_cast<volatile T*>(Address);
+      }
+
+      bool begin_ = false;
+    };
+
+    template <typename T, frt::usize Address>
+    class IOPortOutputIterator
+        : public frt::IteratorInterface<IOPortForwardIterator<T, Address>, frt::OutputIteratorTag, T, volatile T&> {
+    public:
+      explicit IOPortOutputIterator(bool begin) : begin_{begin} {}
+
+      volatile T& value() const noexcept {
+        return *address();
+      }
+
+      void next() noexcept {
+        begin_ = false;
+      }
+
+      bool eq(IOPortOutputIterator other) const noexcept {
+        return begin_ && other.begin_;
+      }
+
+    private:
+      [[nodiscard]] volatile T* address() const noexcept {
+        return reinterpret_cast<volatile T*>(Address);
+      }
+
+      bool begin_;
+    };
+  } // namespace internal
+
   template <TriviallyCopyable T, frt::usize Address> class IOPortRO {
   public:
     using value_type = T;
@@ -24,6 +80,8 @@ namespace frt {
     using reference = volatile T&;
     using const_pointer = const volatile T*;
     using const_reference = const volatile T&;
+    using iterator = internal::IOPortForwardIterator<const T, Address>;
+    using const_iterator = iterator;
 
     [[nodiscard]] value_type read() const noexcept {
       return frt::volatile_read(address());
@@ -33,20 +91,16 @@ namespace frt {
       return read();
     }
 
-    [[nodiscard]] const_reference operator*() const {
-      return *address();
-    }
-
-    IOPortRO& operator++() noexcept {
-      return *this;
-    }
-
-    IOPortRO operator++(int) noexcept {
-      return *this;
-    }
-
     [[nodiscard]] const_pointer address() const noexcept {
       return reinterpret_cast<const_pointer>(Address);
+    }
+
+    [[nodiscard]] constexpr const_iterator begin() const noexcept {
+      return const_iterator{true};
+    }
+
+    [[nodiscard]] constexpr const_iterator end() const noexcept {
+      return const_iterator{false};
     }
 
     [[nodiscard]] bool operator==(IOPortRO /*unused*/) const noexcept {
@@ -62,6 +116,7 @@ namespace frt {
     using reference = volatile T&;
     using const_pointer = const volatile T*;
     using const_reference = const volatile T&;
+    using iterator = internal::IOPortOutputIterator<T, Address>;
 
     void write(T value) noexcept {
       frt::volatile_write(address(), value);
@@ -73,24 +128,20 @@ namespace frt {
       return *this;
     }
 
-    [[nodiscard]] IOPortWO& operator*() noexcept {
-      return *this;
-    }
-
-    [[nodiscard]] IOPortWO& operator++() noexcept {
-      return *this;
-    }
-
-    IOPortWO operator++(int) noexcept {
-      return *this;
-    }
-
     [[nodiscard]] pointer address() noexcept {
       return reinterpret_cast<pointer>(Address);
     }
 
     [[nodiscard]] const_pointer address() const noexcept {
       return reinterpret_cast<const_pointer>(Address);
+    }
+
+    [[nodiscard]] constexpr iterator begin() const noexcept {
+      return iterator{true};
+    }
+
+    [[nodiscard]] constexpr iterator end() const noexcept {
+      return iterator{false};
     }
 
     [[nodiscard]] bool operator==(IOPortWO /*unused*/) const noexcept {
@@ -106,6 +157,8 @@ namespace frt {
     using reference = volatile T&;
     using const_pointer = const volatile T*;
     using const_reference = const volatile T&;
+    using iterator = internal::IOPortForwardIterator<T, Address>;
+    using const_iterator = internal::IOPortForwardIterator<const T, Address>;
 
     IOPortRW& operator=(T value) noexcept {
       write(value);
@@ -125,14 +178,6 @@ namespace frt {
       frt::volatile_write(address(), value);
     }
 
-    [[nodiscard]] reference operator*() noexcept {
-      return *address();
-    }
-
-    [[nodiscard]] const_reference operator*() const noexcept {
-      return *address();
-    }
-
     [[nodiscard]] pointer address() noexcept {
       return reinterpret_cast<pointer>(Address);
     }
@@ -141,12 +186,28 @@ namespace frt {
       return reinterpret_cast<const_pointer>(Address);
     }
 
-    IOPortRW& operator++() noexcept {
-      return *this;
+    [[nodiscard]] constexpr iterator begin() noexcept {
+      return iterator{true};
     }
 
-    IOPortRW operator++(int) noexcept {
-      return *this;
+    [[nodiscard]] constexpr iterator end() noexcept {
+      return iterator{false};
+    }
+
+    [[nodiscard]] constexpr const_iterator begin() const noexcept {
+      return const_iterator{true};
+    }
+
+    [[nodiscard]] constexpr const_iterator end() const noexcept {
+      return const_iterator{false};
+    }
+
+    [[nodiscard]] constexpr const_iterator cbegin() const noexcept {
+      return const_iterator{true};
+    }
+
+    [[nodiscard]] constexpr const_iterator cend() const noexcept {
+      return const_iterator{false};
     }
 
     [[nodiscard]] bool operator==(IOPortRW /*unused*/) const noexcept {
@@ -183,24 +244,12 @@ namespace frt {
       frt::volatile_write(address(), value);
     }
 
-    [[nodiscard]] const_reference operator*() const noexcept {
-      return value_;
-    }
-
     [[nodiscard]] pointer address() noexcept {
       return reinterpret_cast<pointer>(Address);
     }
 
     [[nodiscard]] const_pointer address() const noexcept {
       return reinterpret_cast<const_pointer>(Address);
-    }
-
-    IOPortWOS& operator++() noexcept {
-      return *this;
-    }
-
-    IOPortWOS operator++(int) noexcept {
-      return *this;
     }
 
     [[nodiscard]] bool operator==(IOPortWOS /*unused*/) const noexcept {
@@ -210,4 +259,11 @@ namespace frt {
   private:
     T value_;
   };
+
+  using t = IteratorTraits<typename IOPortRW<int, 0x800>::iterator>;
+
+  t f() {
+    return t{};
+  }
+
 } // namespace frt

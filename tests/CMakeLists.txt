@@ -22,9 +22,9 @@ function(frt_get_gtest)
     FetchContent_MakeAvailable(googletest)
 endfunction()
 
-set(FRT_TESTS_CORE core/bit.cc)
-set(FRT_TESTS_TYPES types/concepts.cc)
-set(FRT_TESTS_UTILITY utility/swap.cc utility/defer.cc)
+set(FRT_TESTS_CORE core/bit.cc core/iterators/iterator_traits.cc)
+set(FRT_TESTS_TYPES types/concepts.cc types/invoke.cc types/basic.cc)
+set(FRT_TESTS_UTILITY utility/swap.cc utility/defer.cc utility/as.cc)
 
 if (${FRT_TESTS})
     message(STATUS "Configuring tests")
@@ -42,7 +42,7 @@ if (${FRT_TESTS})
     # create test suite
     add_executable(frt_tests ${FRT_TESTS_CORE} ${FRT_TESTS_TYPES} ${FRT_TESTS_UTILITY})
     frt_configure_target(frt_tests)
-    target_link_libraries(frt_tests frt gtest_main)
+    target_link_libraries(frt_tests frt gtest_main gmock)
     target_include_directories(frt_tests PRIVATE ./)
 
     # discover tests so we can use it with CTest

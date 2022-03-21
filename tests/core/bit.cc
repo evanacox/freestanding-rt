@@ -27,7 +27,7 @@ TEST(FrtCoreBit, BitCast) {
   static_assert(constexpr_bit_cast());
 
   EXPECT_EQ(iee754_as_int, frt::bit_cast<std::int64_t>(iee754_as_double)); // exact bit pattern from IEEE-754
-  EXPECT_EQ(5, frt::bit_cast<int>(tests::Wrapper{5}));
+  EXPECT_EQ(5, frt::bit_cast<int>(Wrapper{5}));
   EXPECT_EQ(std::numeric_limits<unsigned>::max(), frt::bit_cast<unsigned>(-1));
 }
 

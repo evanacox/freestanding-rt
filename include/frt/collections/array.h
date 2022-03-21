@@ -209,6 +209,10 @@ namespace frt {
       }
     }
 
+    friend constexpr void swap(frt::Array<T, N, Align>& a, frt::Array<T, N, Align>& b) {
+      frt::swap(a.__a, b.__a);
+    }
+
     T __a[N]; // NOLINT(modernize-avoid-c-arrays, misc-non-private-member-variables-in-classes)
   };
 

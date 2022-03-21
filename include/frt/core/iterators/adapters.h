@@ -54,7 +54,7 @@ namespace frt {
 
   template <RandomAccessIterator I>
   class ReverseIterator<I> : public IteratorInterface<ReverseIterator<I>,
-                                 RandomIteratorTag,
+                                 RandomAccessIteratorTag,
                                  IterValue<I>,
                                  IterReference<I>,
                                  typename IteratorTraits<I>::pointer,

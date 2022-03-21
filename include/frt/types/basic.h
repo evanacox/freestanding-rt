@@ -33,21 +33,19 @@ namespace frt {
 
   using usize = uintptr_t;
 
-  using byte = unsigned char; // need to not violate aliasing rules
+  using ubyte = unsigned char;
 
   using ibyte = signed char;
 
   using nullptr_t = decltype(nullptr);
 
-  using u8 = byte;
+  using u8 = ubyte;
 
   using u16 = uint16_t;
 
   using u32 = uint32_t;
 
   using u64 = uint64_t;
-
-  using u128 = unsigned __int128;
 
   using uleast8 = uint_least8_t;
 
@@ -72,8 +70,6 @@ namespace frt {
   using i32 = int32_t;
 
   using i64 = int64_t;
-
-  using i128 = __int128;
 
   using ileast8 = int_least8_t;
 

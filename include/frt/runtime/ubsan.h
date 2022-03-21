@@ -31,7 +31,7 @@ namespace frt::ubsan {
       UBSanSourceInfo location;
       UBSanTypeDescriptor* type;
       frt::usize alignment;
-      frt::byte type_check_kind;
+      frt::ubyte type_check_kind;
     };
 
     ///

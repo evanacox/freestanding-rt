@@ -38,6 +38,6 @@ namespace frt {
 
   private:
     frt::isize size_ = 0;
-    alignas(T) frt::byte storage_[N * sizeof(T)] = {0}; // NOLINT(modernize-avoid-c-arrays)
+    alignas(T) frt::ubyte storage_[N * sizeof(T)] = {0}; // NOLINT(modernize-avoid-c-arrays)
   };
 } // namespace frt

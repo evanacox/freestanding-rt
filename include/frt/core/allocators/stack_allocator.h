@@ -21,6 +21,6 @@ namespace frt {
     explicit StackAllocator() = default;
 
   private:
-    alignas(T) frt::Array<frt::byte, Bytes> storage_;
+    alignas(T) frt::Array<frt::ubyte, Bytes> storage_;
   };
 } // namespace frt

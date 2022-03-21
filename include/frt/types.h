@@ -12,6 +12,7 @@
 
 #include "./types/basic.h"
 #include "./types/concepts.h"
+#include "./types/exchange.h"
 #include "./types/forward.h"
 #include "./types/invoke.h"
 #include "./types/move.h"

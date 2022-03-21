@@ -51,31 +51,35 @@ namespace frt {
       }
 
       // implements INVOKE for normal callable objects
-      template <typename F, typename... Args> constexpr decltype(auto) INVOKE(F&& f, Args&&... args) {
-        return frt::forward<F>(f)(frt::forward<Args>(args)...);
+      template <typename F, typename... Args> constexpr decltype(auto) INVOKE(F&& f, Args&&... args) requires requires {
+        frt::forward<F>(f)(frt::forward<Args>(args)...);
       }
+      { return frt::forward<F>(f)(frt::forward<Args>(args)...); }
 
       template <typename F, typename... Args>
-      concept IsInvocable = requires(F f, Args... args) {
-        internal::INVOKE(frt::forward<F>(f), frt::forward<Args>(args)...);
+      concept IsInvocable = requires(F&& f, Args&&... args) {
+        internal::INVOKE<F, Args...>(frt::forward<F>(f), frt::forward<Args>(args)...);
       };
 
       template <typename F, typename... Args>
-      concept IsNothrowInvocable = requires(F f, Args... args) {
+      concept IsNothrowInvocable = requires(F&& f, Args&&... args) {
         // clang-format off
-      { internal::INVOKE(frt::forward<F>(f), frt::forward<Args>(args)...) } noexcept;
+      { internal::INVOKE<F, Args...>(frt::forward<F>(f), frt::forward<Args>(args)...) } noexcept;
         // clang-format on
       };
 
+      template <typename From, typename To>
+      concept InvokeConvertible = traits::is_convertible<From, To>;
+
       template <typename R, typename F, typename... Args>
-      concept IsInvocableR = requires(F f, Args... args) {
-        internal::INVOKE<R>(frt::forward<F>(f), frt::forward<Args>(args)...);
+      concept IsInvocableR = requires(F&& f, Args&&... args) {
+        { internal::INVOKE<F, Args...>(frt::forward<F>(f), frt::forward<Args>(args)...) } -> InvokeConvertible<R>;
       };
 
       template <typename R, typename F, typename... Args>
-      concept IsNothrowInvocableR = requires(F f, Args... args) {
+      concept IsNothrowInvocableR = requires(F&& f, Args&&... args) {
         // clang-format off
-      { internal::INVOKE<R>(frt::forward<F>(f), frt::forward<Args>(args)...) } noexcept;
+      { internal::INVOKE<F, Args...>(frt::forward<F>(f), frt::forward<Args>(args)...) } noexcept -> InvokeConvertible<R>;
         // clang-format on
       };
     } // namespace internal
@@ -83,8 +87,10 @@ namespace frt {
     template <typename Void, typename, typename...> struct InvokeResultTrait {};
 
     template <typename F, typename... Args>
-    struct InvokeResultTrait<decltype(void(INVOKE(traits::declval<F>(), traits::declval<Args>()...))), F, Args...> {
-      using type = decltype(internal::INVOKE(traits::declval<F>(), traits::declval<Args>()...));
+    struct InvokeResultTrait<decltype(internal::INVOKE(traits::declval<F&&>(), traits::declval<Args&&>()...)),
+        F,
+        Args...> {
+      using type = decltype(internal::INVOKE(traits::declval<F&&>(), traits::declval<Args&&>()...));
     };
 
     template <typename F, typename... Args> using InvokeResult = typename InvokeResultTrait<F, Args...>::type;
@@ -114,9 +120,10 @@ namespace frt {
 
   template <typename F, typename... Args>
   constexpr traits::InvokeResult<F, Args...> invoke(F&& f, Args&&... args) noexcept(
-      traits::is_nothrow_invocable<F, Args...>) {
-    return traits::internal::INVOKE(frt::forward<F>(f), frt::forward<Args>(args)...);
+      traits::is_nothrow_invocable<F, Args...>) requires requires {
+    traits::internal::INVOKE(frt::forward<F>(f), frt::forward<Args>(args)...);
   }
+  { return traits::internal::INVOKE(frt::forward<F>(f), frt::forward<Args>(args)...); }
 
   template <typename T>
   requires traits::is_object<T> || traits::is_function<T>

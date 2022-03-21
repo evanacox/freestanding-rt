@@ -8,8 +8,21 @@
 //                                                                           //
 //======---------------------------------------------------------------======//
 
-#include "frt/utility/defer.h"
-#include "frt/types/move.h"
-#include "gtest/gtest.h"
+#pragma once
 
-TEST(FrtUtilityDefer, Defer) {}
+#include "./forward.h"
+
+namespace frt {
+  /// Exchanges `a`'s value with `new_value`, and returns the old value
+  ///
+  /// \param a A reference to the value to replace
+  /// \param new_value The value to replace it with
+  /// \return The old value of `a`
+  template <typename T, typename U = T> [[nodiscard]] constexpr T exchange(T& a, T&& new_value) noexcept {
+    auto temp = frt::move(a);
+
+    a = frt::forward<U>(new_value);
+
+    return temp;
+  }
+} // namespace frt

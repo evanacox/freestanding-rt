@@ -20,7 +20,7 @@ class IteratorInterface;
 
 * `Derived`: The actual iterator type, used for CRTP
 * `Tag`: Some (FRT) iterator tag type, e.g `frt::InputIteratorTag` or `frt::ContiguousIteratorTag`
-* `Value`: The `value_type` for the iterator, e.g `int` or `frt::byte`
+* `Value`: The `value_type` for the iterator, e.g `int` or `frt::ubyte`
 * `Reference`: The result type of `operator*`, usually `ValueType&` but not always
 * `Pointer`: The result type of `operator->`, usually `ValueType*` but not always
 * `DiffType`: The type used to measure distances between iterators, probably `frt::isize`.
@@ -115,7 +115,7 @@ Reference value() const;
 void next(); 
 ```
 
-### `forward_iterator` Operations
+### `TestForwardIterator` Operations
 
 Forward iterators are effectively just input iterators that also fulfill `frt::Regular`. Since FRT requires all
 iterators be `frt::Movable`
@@ -131,7 +131,7 @@ Derived(const Derived&);
 Derived& operator=(const Derived&); 
 ```
 
-### `bidirectional_iterator` Operations
+### `TestBidirectionalIterator` Operations
 
 Bidirectional iterators are effectively just forward iterators with
 `prev` added on top. `prev` is used to generate `operator--` overloads, and will return the iterator to its previous
@@ -140,13 +140,13 @@ state.
 Simply put, `a.next(), a.prev()` should leave the iterator as if it hadn't been changed at all.
 
 ```cpp
-// everything that `forward_iterator` requires, along with:
+// everything that `TestForwardIterator` requires, along with:
 
 // move to the previous element, opposite of `.next()`
 void prev(); 
 ```
 
-### `random_access_iterator` Operations
+### `TestRandomAccessIterator` Operations
 
 Random access iterators are able to drop much of the previous requirements, and instead use `move` for any move
 operations.
@@ -192,7 +192,7 @@ DiffType distance_to(const Derived& other) const;
 frt::StrongOrder cmp(const Derived& other) const;
 ```
 
-### `contiguous_iterator` Operations
+### `TestContiguousIterator` Operations
 
 Contiguous iterators are effectively random iterators with the requirement that their values be stored contiguously, and
 because of this, the requirement for `value` is dropped in favor of an `address` member function.

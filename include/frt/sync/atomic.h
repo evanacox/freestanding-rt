@@ -846,7 +846,7 @@ namespace frt {
   class AtomicFlag {
   public:
     /// The platform-defined `true` value produced by `__atomic_test_and_set`
-    inline static constexpr frt::byte true_value = __GCC_ATOMIC_TEST_AND_SET_TRUEVAL;
+    inline static constexpr frt::ubyte true_value = __GCC_ATOMIC_TEST_AND_SET_TRUEVAL;
 
     /// Creates an atomic flag with an initial state of `false`
     constexpr explicit AtomicFlag() noexcept = default;
@@ -891,7 +891,7 @@ namespace frt {
     }
 
   private:
-    using Underlying = traits::Conditional<true_value == 1, bool, frt::byte>;
+    using Underlying = traits::Conditional<true_value == 1, bool, frt::ubyte>;
 
     // the true value may not actually be `1`, in which case we want to use
     // a byte value instead of a `bool`. `0` is always the false value though

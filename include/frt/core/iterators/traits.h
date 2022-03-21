@@ -59,9 +59,7 @@ namespace frt {
       using difference_type = typename T::difference_type;
     };
 
-    template <typename T>
-    requires HasNoDiffType<T>
-    struct IncrementableTraitsImpl<T> {
+    template <HasNoDiffType T> struct IncrementableTraitsImpl<T> {
       using difference_type = traits::MakeSigned<decltype(traits::declval<T>() - traits::declval<T>())>;
     };
   } // namespace internal
@@ -122,7 +120,7 @@ namespace frt {
     using value_type = T;
     using pointer = T*;
     using reference = T&;
-    using iterator_category = frt::RandomIteratorTag;
+    using iterator_category = frt::RandomAccessIteratorTag;
     using iterator_concept = frt::ContiguousIteratorTag;
     using __frt_iterator_traits_primary = void;
   };
@@ -138,7 +136,7 @@ namespace frt {
     template <IsFromPrimary I> struct IterConceptTraits<I> { using type = I; };
 
     template <typename I> struct IterConcept2 {
-      using type = traits::EnableIf<IsFromPrimary<I>, frt::RandomIteratorTag>;
+      using type = traits::EnableIf<IsFromPrimary<I>, frt::RandomAccessIteratorTag>;
     };
 
     template <typename I>
@@ -295,10 +293,18 @@ namespace frt {
       using type = typename Iter::iterator_category;
     };
 
+    template <HasBoth Iter> struct IteratorTraitsImpl<Iter> {
+      using difference_type = typename Iter::difference_type;
+      using value_type = typename Iter::value_type;
+      using pointer = typename Iter::pointer;
+      using reference = typename Iter::reference;
+      using iterator_category = typename Iter::iterator_category;
+    };
+
     template <HasAllExceptPointer Iter> struct IteratorTraitsImpl<Iter> {
       using difference_type = typename Iter::difference_type;
       using value_type = typename Iter::value_type;
-      using pointer = typename IteratorTraitsPointer<Iter>::type;
+      using pointer = void;
       using reference = typename Iter::reference;
       using iterator_category = typename Iter::iterator_category;
     };
@@ -312,10 +318,20 @@ namespace frt {
       using iterator_category = typename IteratorTraitsCategory<Iter>::type;
     };
 
+    template <typename Iter> struct IncrementableDiffType { using type = void; };
+
+    template <typename Iter>
+    requires requires {
+      typename IncrementableTraits<Iter>::difference_type;
+    }
+    struct IncrementableDiffType<Iter> {
+      using type = typename IncrementableTraits<Iter>::difference_type;
+    };
+
     template <typename Iter>
     requires(!HasAllExceptPointer<
                  Iter> && !LegacyInputIterator<Iter> && LegacyIterator<Iter>) struct IteratorTraitsImpl<Iter> {
-      using difference_type = typename IncrementableTraits<Iter>::difference_type;
+      using difference_type = typename IncrementableDiffType<Iter>::type;
       using value_type = void;
       using pointer = void;
       using reference = void;

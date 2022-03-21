@@ -10,7 +10,7 @@
 
 #pragma once
 
-#include "./basic.h"
+#include "basic.h"
 
 namespace frt {
   /// Type that allows code to collect information on its current location in

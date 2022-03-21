@@ -14,8 +14,8 @@ extern "C" FRT_ALWAYS_INLINE void* frt::__frt_mem_copy(void* __restrict to,
     const void* __restrict from,
     frt::usize length) noexcept {
   // TODO: make a better memcpy. __builtin_memcpy_inline? rep movsb?
-  auto* dst = static_cast<frt::byte* __restrict>(to);
-  const auto* src = static_cast<const frt::byte* __restrict>(from);
+  auto* dst = static_cast<frt::ubyte* __restrict>(to);
+  const auto* src = static_cast<const frt::ubyte* __restrict>(from);
 
   while (length-- > 0) {
     *dst++ = *src++;
@@ -26,8 +26,8 @@ extern "C" FRT_ALWAYS_INLINE void* frt::__frt_mem_copy(void* __restrict to,
 
 extern "C" FRT_ALWAYS_INLINE void* frt::__frt_mem_move(void* to, const void* from, frt::usize length) noexcept {
   // TODO: fast mem_move
-  auto* dst = static_cast<frt::byte*>(to);
-  const auto* src = static_cast<const frt::byte*>(from);
+  auto* dst = static_cast<frt::ubyte*>(to);
+  const auto* src = static_cast<const frt::ubyte*>(from);
 
   if (from < to) {
     // `__restrict` may or may not be satisfied here, so we can't just call `__frt_mem_copy`
@@ -48,18 +48,18 @@ extern "C" FRT_ALWAYS_INLINE void* frt::__frt_mem_move(void* to, const void* fro
 
 extern "C" FRT_ALWAYS_INLINE void* frt::__frt_mem_set(void* to, int value, frt::usize length) noexcept {
   // TODO: fast mem_set
-  auto* dst = static_cast<frt::byte*>(to);
+  auto* dst = static_cast<frt::ubyte*>(to);
 
   while (length-- > 0) {
-    *dst++ = static_cast<frt::byte>(value);
+    *dst++ = static_cast<frt::ubyte>(value);
   }
 
   return dst;
 }
 
 extern "C" FRT_ALWAYS_INLINE int frt::__frt_mem_compare(const void* lhs, const void* rhs, frt::usize length) noexcept {
-  const auto* a = static_cast<const frt::byte*>(lhs);
-  const auto* b = static_cast<const frt::byte*>(rhs);
+  const auto* a = static_cast<const frt::ubyte*>(lhs);
+  const auto* b = static_cast<const frt::ubyte*>(rhs);
 
   while (length-- > 0) {
     if (*a++ != *b++) {

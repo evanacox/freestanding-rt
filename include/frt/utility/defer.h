@@ -11,6 +11,7 @@
 #pragma once
 
 #include "../types/concepts.h"
+#include "../types/exchange.h"
 
 namespace frt {
   /// Type that encapsulates a "deferred" callback.

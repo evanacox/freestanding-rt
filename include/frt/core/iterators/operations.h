@@ -18,11 +18,11 @@ namespace frt {
   namespace internal {
     template <typename Iter>
     using GetIteratorConcept =
-        traits::Conditional<RandomAccessIterator<Iter>, RandomIteratorTag, BidirectionalIteratorTag>;
+        traits::Conditional<RandomAccessIterator<Iter>, RandomAccessIteratorTag, BidirectionalIteratorTag>;
 
     template <typename Iter>
-    using GetIteratorCategory = traits::Conditional<DerivedFrom<internal::IterConcept<Iter>, RandomIteratorTag>,
-        RandomIteratorTag,
+    using GetIteratorCategory = traits::Conditional<DerivedFrom<internal::IterConcept<Iter>, RandomAccessIteratorTag>,
+        RandomAccessIteratorTag,
         typename IteratorTraits<Iter>::iterator_category>;
 
     template <typename Iter>

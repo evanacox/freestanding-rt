@@ -9,13 +9,23 @@
 //======---------------------------------------------------------------======//
 
 #include "frt/utility/swap.h"
+#include "frt/collections/array.h"
 #include "frt/types/move.h"
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
+using ::testing::ElementsAre;
+
 namespace {
+  struct UsedADL {};
+
+  inline constexpr auto adl = UsedADL{};
+
   class ADLSwap {
   public:
-    explicit ADLSwap(int x) : x_{x} {}
+    ADLSwap(int x) : x_{x} {} // NOLINT(google-explicit-constructor)
+
+    ADLSwap(int x, UsedADL /*unused*/) : x_{x}, swapped_with_adl_{true} {}
 
     [[nodiscard]] int x() const noexcept {
       return x_;
@@ -29,19 +39,25 @@ namespace {
       swapped_with_adl_ = true;
     }
 
+    friend void swap(ADLSwap& a, ADLSwap& b) {
+      a.set_adl_swapped();
+      b.set_adl_swapped();
+
+      auto tmp = frt::move(a);
+      a = frt::move(b);
+      b = frt::move(tmp);
+    }
+
+    [[maybe_unused]] friend bool operator==(ADLSwap a, ADLSwap b) = default;
+
+    [[maybe_unused]] friend std::ostream& operator<<(std::ostream& os, ADLSwap a) {
+      return os << '{' << a.x_ << ", " << (a.swapped_with_adl_ ? "true" : "false") << '}';
+    }
+
   private:
     int x_;
     bool swapped_with_adl_ = false;
   };
-
-  void swap(ADLSwap& a, ADLSwap& b) {
-    a.set_adl_swapped();
-    b.set_adl_swapped();
-
-    auto tmp = frt::move(a);
-    a = frt::move(b);
-    b = frt::move(tmp);
-  }
 } // namespace
 
 TEST(FrtUtilitySwap, UsesAdlSwap) {
@@ -64,4 +80,25 @@ TEST(FrtUtilitySwap, UsesBuiltinSwap) {
 
   EXPECT_EQ(a, 2);
   EXPECT_EQ(b, 1);
+}
+
+TEST(FrtUtilitySwap, UsesAdlSwapArray) {
+  ADLSwap one[] = {{1}, {2}, {3}, {4}}; // NOLINT(modernize-avoid-c-arrays)
+  ADLSwap two[] = {{4}, {3}, {2}, {1}}; // NOLINT(modernize-avoid-c-arrays)
+
+  frt::swap(one, two);
+
+  EXPECT_THAT(one, ElementsAre(ADLSwap{4, adl}, ADLSwap{3, adl}, ADLSwap{2, adl}, ADLSwap{1, adl}));
+  EXPECT_THAT(two, ElementsAre(ADLSwap{1, adl}, ADLSwap{2, adl}, ADLSwap{3, adl}, ADLSwap{4, adl}));
+}
+
+TEST(FrtUtilitySwap, UsesAdlSwapFrtArray) {
+  frt::Array one{ADLSwap{1}, ADLSwap{2}, ADLSwap{3}, ADLSwap{4}}; // NOLINT(modernize-avoid-c-arrays)
+  frt::Array two{ADLSwap{4}, ADLSwap{3}, ADLSwap{2}, ADLSwap{1}}; // NOLINT(modernize-avoid-c-arrays)
+
+  frt::swap(one, two);
+
+  // if it used the default move-swap instead of the hidden friend swap, these would not have ADL flag enabled
+  EXPECT_THAT(one, ElementsAre(ADLSwap{4, adl}, ADLSwap{3, adl}, ADLSwap{2, adl}, ADLSwap{1, adl}));
+  EXPECT_THAT(two, ElementsAre(ADLSwap{1, adl}, ADLSwap{2, adl}, ADLSwap{3, adl}, ADLSwap{4, adl}));
 }
