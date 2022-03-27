@@ -23,8 +23,17 @@ function(frt_get_gtest)
 endfunction()
 
 set(FRT_TESTS_CORE core/bit.cc core/iterators/iterator_traits.cc)
-set(FRT_TESTS_TYPES types/concepts.cc types/invoke.cc types/basic.cc)
-set(FRT_TESTS_UTILITY utility/swap.cc utility/defer.cc utility/as.cc)
+set(FRT_TESTS_TYPES types/concepts.cc
+        types/invoke.cc
+        types/basic.cc
+        types/traits/other.cc
+        types/traits/common_type.cc
+        types/traits/invoke_result.cc
+        types/traits/cv.cc
+        types/traits/array.cc
+        types/traits/logical.cc
+        types/traits/common_reference.cc)
+set(FRT_TESTS_UTILITY utility/swap.cc utility/defer.cc utility/as.cc types/traits/convertible_to.cc)
 
 if (${FRT_TESTS})
     message(STATUS "Configuring tests")
