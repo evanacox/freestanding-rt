@@ -10,12 +10,22 @@
 
 #pragma once
 
-#include "./utility/as.h"
-#include "./utility/construct.h"
-#include "./utility/defer.h"
-#include "./utility/functional.h"
-#include "./utility/io_port.h"
-#include "./utility/swap.h"
-#include "./utility/unaligned.h"
-#include "./utility/visit.h"
-#include "./utility/volatile.h"
+#include "../types/concepts.h"
+#include "../types/forward.h"
+
+namespace frt {
+  struct Identity {
+    template <typename T> constexpr T&& operator()(T&& t) const noexcept {
+      return frt::forward<T>(t);
+    }
+  };
+
+  struct EqualTo {
+    template <typename T, typename U>
+    requires frt::EqualityComparableWith<T, U>
+    constexpr bool operator()(T&& t, U&& u) const
+        noexcept(noexcept(static_cast<bool>(frt::forward<T>(t) == frt::forward<U>(u)))) {
+      return static_cast<bool>(frt::forward<T>(t) == frt::forward<U>(u));
+    }
+  };
+} // namespace frt

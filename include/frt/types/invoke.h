@@ -19,100 +19,139 @@ namespace frt {
   requires traits::is_object<T> || traits::is_function<T>
   class ReferenceWrapper;
 
-  namespace traits {
-    namespace internal {
-      template <typename> inline constexpr bool is_reference_wrapper = false;
+  namespace internal {
+    template <typename> inline constexpr bool is_reference_wrapper = false;
 
-      template <typename T> inline constexpr bool is_reference_wrapper<frt::ReferenceWrapper<T>> = true;
+    template <typename T> inline constexpr bool is_reference_wrapper<frt::ReferenceWrapper<T>> = true;
 
-      template <typename T, typename Type, typename U, typename... Args>
-      constexpr decltype(auto) INVOKE(Type T::*f, U&& u, Args&&... args) {
-        if constexpr (traits::is_member_function_pointer<decltype(f)>) {
-          if constexpr (traits::is_base_of<T, traits::Decay<U>>) {
-            return (frt::forward<U>(u).*f)(frt::forward<Args>(args)...);
-          } else if constexpr (internal::is_reference_wrapper<traits::Decay<U>>) {
-            return (u.get().*f)(frt::forward<Args>(args)...);
-          } else {
-            return ((*frt::forward<U>(u)).*f)(frt::forward<Args>(args)...);
-          }
-        } else {
-          static_assert(traits::is_member_object_pointer<decltype(f)>,
-              "internal::INVOKE: f must be an member object pointer if it's not a member function pointer");
-          static_assert(sizeof...(args) == 0, "internal::INVOKE: argument list must be 0 long");
-
-          if constexpr (traits::is_base_of<T, traits::Decay<U>>) {
-            return frt::forward<U>(u).*f;
-          } else if constexpr (internal::is_reference_wrapper<traits::Decay<U>>) {
-            return u.get().*f;
-          } else {
-            return (*frt::forward<U>(u)).*f;
-          }
-        }
-      }
-
-      // implements INVOKE for normal callable objects
-      template <typename F, typename... Args> constexpr decltype(auto) INVOKE(F&& f, Args&&... args) requires requires {
-        frt::forward<F>(f)(frt::forward<Args>(args)...);
-      }
-      { return frt::forward<F>(f)(frt::forward<Args>(args)...); }
-
+    template <class T> struct invoke_impl {
       template <typename F, typename... Args>
-      concept IsInvocable = requires(F&& f, Args&&... args) {
-        internal::INVOKE<F, Args...>(frt::forward<F>(f), frt::forward<Args>(args)...);
-      };
-
-      template <typename F, typename... Args>
-      concept IsNothrowInvocable = requires(F&& f, Args&&... args) {
-        // clang-format off
-      { internal::INVOKE<F, Args...>(frt::forward<F>(f), frt::forward<Args>(args)...) } noexcept;
-        // clang-format on
-      };
-
-      template <typename From, typename To>
-      concept InvokeConvertible = traits::is_convertible<From, To>;
-
-      template <typename R, typename F, typename... Args>
-      concept IsInvocableR = requires(F&& f, Args&&... args) {
-        { internal::INVOKE<F, Args...>(frt::forward<F>(f), frt::forward<Args>(args)...) } -> InvokeConvertible<R>;
-      };
-
-      template <typename R, typename F, typename... Args>
-      concept IsNothrowInvocableR = requires(F&& f, Args&&... args) {
-        // clang-format off
-      { internal::INVOKE<F, Args...>(frt::forward<F>(f), frt::forward<Args>(args)...) } noexcept -> InvokeConvertible<R>;
-        // clang-format on
-      };
-    } // namespace internal
-
-    template <typename Void, typename, typename...> struct InvokeResultTrait {};
-
-    template <typename F, typename... Args>
-    struct InvokeResultTrait<decltype(internal::INVOKE(traits::declval<F&&>(), traits::declval<Args&&>()...)),
-        F,
-        Args...> {
-      using type = decltype(internal::INVOKE(traits::declval<F&&>(), traits::declval<Args&&>()...));
+      static auto call(F&& f, Args&&... args) noexcept(noexcept(frt::forward<F>(f)(frt::forward<Args>(args)...)))
+          -> decltype(frt::forward<F>(f)(frt::forward<Args>(args)...));
     };
 
-    template <typename F, typename... Args> using InvokeResult = typename InvokeResultTrait<F, Args...>::type;
+    template <typename B, typename MT> struct invoke_impl<MT B::*> {
+      template <typename T,
+          typename Td = typename traits::Decay<T>,
+          typename = typename traits::EnableIf<traits::is_base_of<B, Td>>>
+      static auto get(T&& t) noexcept -> T&&;
 
-    template <typename F, typename... Args> inline constexpr bool is_invocable = internal::IsInvocable<F, Args...>;
+      template <typename T,
+          typename Td = typename traits::Decay<T>,
+          typename = typename traits::EnableIf<is_reference_wrapper<Td>>>
+      static auto get(T&& t) noexcept -> decltype(t.get());
+
+      template <typename T,
+          typename Td = typename traits::Decay<T>,
+          typename = typename traits::EnableIf<!traits::is_base_of<B, Td>>,
+          typename = typename traits::EnableIf<!is_reference_wrapper<Td>>>
+      static auto get(T&& t) noexcept(noexcept(*frt::forward<T>(t))) -> decltype(*frt::forward<T>(t));
+
+      template <typename T,
+          typename... Args,
+          typename MT1,
+          typename = typename traits::EnableIf<traits::is_function<MT1>>>
+      static auto call(MT1 B::*pmf, T&& t, Args&&... args) noexcept(
+          noexcept((invoke_impl::get(frt::forward<T>(t)).*pmf)(frt::forward<Args>(args)...)))
+          -> decltype((invoke_impl::get(frt::forward<T>(t)).*pmf)(frt::forward<Args>(args)...));
+
+      template <typename T>
+      static auto call(MT B::*pmd, T&& t) noexcept(noexcept(invoke_impl::get(frt::forward<T>(t)).*pmd))
+          -> decltype(invoke_impl::get(frt::forward<T>(t)).*pmd);
+    };
+
+    template <typename F, typename... Args, typename Fd = typename traits::Decay<F>>
+    auto INVOKE(F&& f, Args&&... args) noexcept(
+        noexcept(invoke_impl<Fd>::call(frt::forward<F>(f), frt::forward<Args>(args)...)))
+        -> decltype(invoke_impl<Fd>::call(frt::forward<F>(f), frt::forward<Args>(args)...));
+
+    template <typename AlwaysVoid, typename, typename...> struct InvokeResultTraitImpl {};
+
+    template <typename F, typename... Args>
+    struct InvokeResultTraitImpl<
+        frt::traits::Void<decltype(internal::INVOKE(traits::declval<F>(), traits::declval<Args>()...))>,
+        F,
+        Args...> {
+      using type = decltype(internal::INVOKE(traits::declval<F>(), traits::declval<Args>()...));
+    };
+  } // namespace internal
+
+  namespace traits {
+    template <typename F, typename... Args>
+    using InvokeResult = typename frt::internal::InvokeResultTraitImpl<void, F, Args...>::type;
+
+    template <typename F, typename... Args>
+    struct InvokeResultTrait : frt::internal::InvokeResultTraitImpl<void, F, Args...> {};
+  } // namespace traits
+
+  namespace internal {
+    template <typename F, typename... Args>
+    concept IsInvocable = requires(F&& f, Args&&... args) {
+      internal::INVOKE(frt::forward<F>(f), frt::forward<Args>(args)...);
+    };
+
+    template <typename F, typename... Args>
+    concept IsNothrowInvocable = requires(F&& f, Args&&... args) {
+      { internal::INVOKE(frt::forward<F>(f), frt::forward<Args>(args)...) }
+      noexcept;
+    };
+
+    template <typename From, typename To>
+    concept InvokeConvertible = traits::is_void<To> || traits::is_convertible<From, To>;
+
+    template <typename From, typename To>
+    concept InvokeNothrowConvertible = traits::is_void<To> || traits::is_nothrow_convertible<From, To>;
+
+    template <typename R, typename F, typename... Args>
+    concept IsInvocableR = IsInvocable<F, Args...> && InvokeConvertible<traits::InvokeResult<F, Args...>, R>;
+
+    template <typename R, typename F, typename... Args>
+    concept IsNothrowInvocableR =
+        IsNothrowInvocable<F, Args...> && InvokeNothrowConvertible<traits::InvokeResult<F, Args...>, R>;
+
+    template <class C, class Pointed, class T1, class... Args>
+    constexpr decltype(auto) invoke_memptr(Pointed C::*f, T1&& t1, Args&&... args) {
+      if constexpr (traits::is_function<Pointed>) {
+        if constexpr (traits::is_base_of<C, traits::Decay<T1>>) {
+          return (frt::forward<T1>(t1).*f)(frt::forward<Args>(args)...);
+        } else if constexpr (is_reference_wrapper<traits::Decay<T1>>) {
+          return (t1.get().*f)(frt::forward<Args>(args)...);
+        } else {
+          return ((*frt::forward<T1>(t1)).*f)(frt::forward<Args>(args)...);
+        }
+      } else {
+        static_assert(traits::is_object<Pointed> && sizeof...(args) == 0);
+        if constexpr (traits::is_base_of<C, traits::Decay<T1>>) {
+          return frt::forward<T1>(t1).*f;
+        } else if constexpr (is_reference_wrapper<traits::Decay<T1>>) {
+          return t1.get().*f;
+        } else {
+          return (*frt::forward<T1>(t1)).*f;
+        }
+      }
+    }
+
+  } // namespace internal
+
+  namespace traits {
+    template <typename F, typename... Args> inline constexpr bool is_invocable = frt::internal::IsInvocable<F, Args...>;
 
     template <typename F, typename... Args> struct IsInvocableTrait : BoolConstant<is_invocable<F, Args...>> {};
 
     template <typename F, typename... Args>
-    inline constexpr bool is_nothrow_invocable = internal::IsNothrowInvocable<F, Args...>;
+    inline constexpr bool is_nothrow_invocable = frt::internal::IsNothrowInvocable<F, Args...>;
 
     template <typename F, typename... Args>
     struct IsNothrowInvocableTrait : BoolConstant<is_nothrow_invocable<F, Args...>> {};
 
     template <typename R, typename F, typename... Args>
-    inline constexpr bool is_invocable_r = internal::IsInvocableR<R, F, Args...>;
+    inline constexpr bool is_invocable_r = frt::internal::IsInvocableR<R, F, Args...>;
 
     template <typename R, typename F, typename... Args>
     struct IsInvocableRTrait : BoolConstant<is_invocable_r<R, F, Args...>> {};
 
     template <typename R, typename F, typename... Args>
-    inline constexpr bool is_nothrow_invocable_r = internal::IsNothrowInvocableR<R, F, Args...>;
+    inline constexpr bool is_nothrow_invocable_r = frt::internal::IsNothrowInvocableR<R, F, Args...>;
 
     template <typename R, typename F, typename... Args>
     struct IsNothrowInvocableRTrait : BoolConstant<is_nothrow_invocable_r<R, F, Args...>> {};
@@ -120,10 +159,25 @@ namespace frt {
 
   template <typename F, typename... Args>
   constexpr traits::InvokeResult<F, Args...> invoke(F&& f, Args&&... args) noexcept(
-      traits::is_nothrow_invocable<F, Args...>) requires requires {
-    traits::internal::INVOKE(frt::forward<F>(f), frt::forward<Args>(args)...);
+      traits::is_nothrow_invocable<F, Args...>) requires traits::is_invocable<F, Args...> {
+    if constexpr (traits::is_member_pointer<traits::Decay<F>>) {
+      return internal::invoke_memptr(f, frt::forward<Args>(args)...);
+    } else {
+      return frt::forward<F>(f)(frt::forward<Args>(args)...);
+    }
   }
-  { return traits::internal::INVOKE(frt::forward<F>(f), frt::forward<Args>(args)...); }
+
+  template <typename R, typename F, typename... Args>
+  constexpr R invoke_r(F&& f, Args&&... args) noexcept(
+      traits::is_nothrow_invocable_r<R, F, Args...>) requires traits::is_invocable_r<R, F, Args...> {
+    return frt::invoke(frt::forward<F>(f), frt::forward<Args>(args)...);
+  }
+
+  namespace internal {
+    template <typename T> void ref_wrapper_fun(T&) noexcept;
+
+    template <typename T> void ref_wrapper_fun(T &&) = delete;
+  } // namespace internal
 
   template <typename T>
   requires traits::is_object<T> || traits::is_function<T>
@@ -132,7 +186,8 @@ namespace frt {
     template <typename U>
     // NOLINTNEXTLINE(google-explicit-constructor, bugprone-forwarding-reference-overload, fuchsia-trailing-return)
     constexpr ReferenceWrapper(U&& ref) noexcept(traits::is_nothrow_convertible<T, U&&>) requires(
-        !traits::is_same<traits::Decay<U>, ReferenceWrapper>)
+        !traits::is_same<traits::Decay<U>,
+            ReferenceWrapper> && requires { internal::ref_wrapper_fun<T>(traits::declval<U>()); })
         : ptr_(frt::address_of(static_cast<T&>(frt::forward<U>(ref)))) {}
 
     // NOLINTNEXTLINE(fuchsia-trailing-return)
@@ -165,8 +220,8 @@ namespace frt {
     return ReferenceWrapper<T>(ref);
   }
 
-  template <typename T> [[nodiscard]] constexpr ReferenceWrapper<T> ref(ReferenceWrapper<T>& ref) noexcept {
-    return frt::ref(ref.get());
+  template <typename T> [[nodiscard]] constexpr ReferenceWrapper<T> ref(ReferenceWrapper<T> ref) noexcept {
+    return ref;
   }
 
   template <typename T> void ref(const T&&) = delete;
@@ -175,8 +230,8 @@ namespace frt {
     return ReferenceWrapper<const T>(ref);
   }
 
-  template <typename T> [[nodiscard]] constexpr ReferenceWrapper<const T> cref(ReferenceWrapper<T>& ref) noexcept {
-    return frt::cref(ref.get());
+  template <typename T> [[nodiscard]] constexpr ReferenceWrapper<const T> cref(ReferenceWrapper<T> ref) noexcept {
+    return ref;
   }
 
   template <typename T> void cref(const T&&) = delete;

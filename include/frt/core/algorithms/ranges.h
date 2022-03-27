@@ -11,6 +11,7 @@
 #pragma once
 
 #include "../../types/concepts.h"
+#include "../../types/invoke.h"
 #include "../../utility/as.h"
 #include "../iterators.h"
 
@@ -27,9 +28,6 @@ namespace frt {
 
     template <typename T>
     concept MaybeBorrowedRange = traits::is_lvalue_reference<T> || enable_borrowed_range<T>;
-
-    template <typename T>
-    concept ClassOrEnum = traits::is_class<T> || traits::is_enum<T>;
 
     template <typename To, typename From> constexpr decltype(auto) forwarding_as_const(From& object) noexcept {
       static_assert(SameAs<To&, From&>);
@@ -444,4 +442,41 @@ namespace frt {
   concept SizedRange = frt::Range<T> && requires(T& t) {
     frt::size(t);
   };
+
+  namespace internal {
+    template <typename F, typename... Is>
+    concept IndirectResultReq = (frt::IndirectlyReadable<Is> && ...) && frt::Invocable<F, frt::IterReference<Is>...>;
+  }
+
+  template <typename F, typename... Is>
+  requires internal::IndirectResultReq<F, Is...>
+  using IndirectResult = frt::traits::InvokeResult<F, frt::IterReference<Is>...>;
+
+  template <frt::IndirectlyReadable I, frt::IndirectlyRegularUnaryInvocable<I> Proj> struct Projected {
+    using value_type = traits::RemoveCVRef<frt::IndirectResult<Proj&, I>>;
+
+    frt::IndirectResult<Proj&, I> operator*() const;
+  };
+
+  template <frt::WeaklyIncrementable I, typename Proj> struct IncrementableTraits<frt::Projected<I, Proj>> {
+    using difference_type = frt::IterDifference<I>;
+  };
+
+  template <typename Proj, typename I>
+  concept ProjFor = Invocable<Proj&, IterValue<I>>;
+
+  struct Dangling {
+    constexpr Dangling() noexcept = default;
+
+    template <typename... Args>
+    constexpr Dangling(Args&&... /*unused*/) noexcept {} // NOLINT(google-explicit-constructor)
+  };
+
+  namespace internal {
+    template <typename R> struct BorrowedRangeImpl { using type = Dangling; };
+
+    template <BorrowedRange R> struct BorrowedRangeImpl<R> { using type = RangeIterator<R>; };
+  } // namespace internal
+
+  template <Range R> using BorrowedIterator = typename internal::BorrowedRangeImpl<R>::type;
 } // namespace frt

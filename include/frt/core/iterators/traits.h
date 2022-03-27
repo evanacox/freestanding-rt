@@ -161,9 +161,9 @@ namespace frt {
   } // namespace internal
 
   template <typename I>
-  using IterValue = traits::Conditional<internal::IsFromPrimary<traits::RemoveCVRef<I>>,
-      typename IndirectlyReadableTraits<traits::RemoveCVRef<I>>::value_type,
-      typename IteratorTraits<traits::RemoveCVRef<I>>::value_type>;
+  using IterValue = typename traits::Conditional<internal::IsFromPrimary<traits::RemoveCVRef<I>>,
+      IndirectlyReadableTraits<traits::RemoveCVRef<I>>,
+      IteratorTraits<traits::RemoveCVRef<I>>>::value_type;
 
   template <internal::Dereferenceable I> using IterReference = decltype(*traits::declval<I&>());
 
@@ -172,19 +172,101 @@ namespace frt {
       typename IncrementableTraits<traits::RemoveCVRef<I>>::difference_type,
       typename IteratorTraits<traits::RemoveCVRef<I>>::difference_type>;
 
-  template <internal::Dereferenceable I>
-  using IterRvalueReference = typename IteratorTraits<traits::RemoveCVRef<I>>::value_type;
+  namespace internal {
+    template <typename T>
+    concept ClassOrEnum = traits::is_class<T> || traits::is_enum<T>;
+  }
+
+  namespace ranges_access_internal {
+    template <typename T, typename U>
+    concept ADLIterSwap = (internal::ClassOrEnum<T> || internal::ClassOrEnum<U>)&&requires(T&& t, U&& u) {
+      iter_swap(frt::forward<T>(t), frt::forward<U>(u));
+    };
+
+    struct IterSwap {
+    private:
+      template <typename T, typename U> static constexpr bool is_noexcept() {
+        if constexpr (ADLIterSwap<T, U>) {
+          return noexcept(iter_swap(traits::declval<T>(), traits::declval<U>()));
+        } else {
+          return noexcept(frt::swap(traits::declval<T>(), traits::declval<U>()));
+        }
+      }
+
+    public:
+      template <typename T, typename U>
+      requires SwappableWith<IterValue<T>, IterValue<U>> || ADLIterSwap<T, U>
+      constexpr void operator()(T&& t, U&& u) const noexcept(is_noexcept<T, U>()) {
+        if constexpr (ADLIterSwap<T, U>) {
+          return iter_swap(frt::forward<T>(t), frt::forward<U>(u));
+        } else {
+          return frt::swap(*frt::forward<T>(t), *frt::forward<U>(u));
+        }
+      }
+    };
+
+    template <typename T>
+    concept ADLIterMove = internal::ClassOrEnum<T> && requires(T&& t) {
+      iter_move(frt::forward<T>(t));
+    };
+
+    template <typename T>
+    concept IterMoveLvalueRef = traits::is_lvalue_reference<T>;
+
+    template <typename T>
+    concept IterMoveCanForwardIntoLvalue = requires(T&& t) {
+      { *frt::forward<T>(traits::declval<T&&>()) } -> IterMoveLvalueRef;
+    };
+
+    struct IterMove {
+    private:
+      template <typename T> static constexpr bool is_noexcept() {
+        if constexpr (ADLIterMove<T>) {
+          return noexcept(iter_move(traits::declval<T&&>()));
+        } else if constexpr (IterMoveCanForwardIntoLvalue<T>) {
+          return noexcept(frt::move(*frt::forward<T>(traits::declval<T&&>())));
+        } else {
+          return noexcept(*frt::forward<T>(traits::declval<T&&>()));
+        }
+      }
+
+    public:
+      template <typename T>
+      requires IterMoveCanForwardIntoLvalue<T> || ADLIterMove<T>
+      constexpr decltype(auto) operator()(T&& t) const noexcept(is_noexcept<T>()) {
+        if constexpr (ADLIterMove<T>) {
+          return iter_move(frt::forward<T>(t));
+        } else if constexpr (IterMoveCanForwardIntoLvalue<T>) {
+          return frt::move(*frt::forward<T>(t));
+        } else {
+          return *frt::forward<T>(t);
+        }
+      }
+    };
+  } // namespace ranges_access_internal
+
+  inline namespace range_access {
+    inline constexpr ranges_access_internal::IterSwap iter_swap = ranges_access_internal::IterSwap{};
+    inline constexpr ranges_access_internal::IterMove iter_move = ranges_access_internal::IterMove{};
+  } // namespace range_access
+
+  template <internal::Dereferenceable I> using IterRvalueReference = decltype(frt::iter_move(traits::declval<I>()));
+
+  namespace internal {
+    template <typename I>
+    concept IndirectlyReadableImpl = requires(const I in) {
+      typename IterValue<I>;
+      typename IterReference<I>;
+      typename IterRvalueReference<I>;
+      { *in } -> SameAs<IterReference<I>>;
+      { frt::iter_move(in) } -> SameAs<IterRvalueReference<I>>;
+    }
+    &&CommonReferenceWith<IterReference<I>&&, IterValue<I>&>&& CommonReferenceWith<IterReference<I>&&,
+        IterRvalueReference<I>&&>&& CommonReferenceWith<IterRvalueReference<I>&&, const IterValue<I>&>;
+  } // namespace internal
 
   template <typename I>
-  concept IndirectlyReadable =
-      CommonReferenceWith<IterReference<I> &&, IterValue<I>&>&& CommonReferenceWith<IterReference<I>&&,
-          IterRvalueReference<I>&&>&& CommonReferenceWith<IterRvalueReference<I>&&,
-          const IterValue<I>&>&& requires(const I in) {
-    typename IterValue<I>;
-    typename IterReference<I>;
-    typename IterRvalueReference<I>;
-    { *in } -> SameAs<IterReference<I>>;
-  };
+  concept IndirectlyReadable = internal::IndirectlyReadableImpl<traits::RemoveCVRef<I>>;
 
   template <IndirectlyReadable I> using IterCommonReference = traits::CommonReference<IterReference<I>, IterValue<I>&>;
 

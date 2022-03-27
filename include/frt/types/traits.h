@@ -12,13 +12,19 @@
 
 #include "../platform/compiler.h"
 #include "../platform/macros.h"
-#include "basic.h"
+#include "./basic.h"
 
 namespace frt::traits {
   namespace internal {
     template <typename T> inline constexpr bool dependent_false = false;
 
     template <typename T, T Val> inline constexpr bool dependent_false_value = false;
+
+    template <bool> struct Select { // Select between aliases that extract either their first or second parameter
+      template <typename T1, typename> using Apply = T1;
+    };
+
+    template <> struct Select<false> { template <typename, typename T2> using Apply = T2; };
   } // namespace internal
 
   template <typename T, T Value> struct IntegralConstant {
@@ -81,9 +87,11 @@ namespace frt::traits {
 
   template <typename T> struct RemoveCVTrait { using type = RemoveCV<T>; };
 
-  template <typename T> inline constexpr bool is_const = is_same<T, const T>;
+  template <typename T> struct IsConstTrait : FalseType {};
 
-  template <typename T> struct IsConstTrait : BoolConstant<is_const<T>> {};
+  template <typename T> struct IsConstTrait<const T> : TrueType {};
+
+  template <typename T> inline constexpr bool is_const = IsConstTrait<T>::value;
 
   template <typename T> inline constexpr bool is_lvalue_reference = false;
 
@@ -107,7 +115,7 @@ namespace frt::traits {
 
   template <typename T> struct IsPointerTrait : BoolConstant<is_pointer<T*>> {};
 
-  template <typename T> inline constexpr bool is_function = !is_reference<T> && !is_const<const T>;
+  template <typename T> inline constexpr bool is_function = !(is_reference<T> || is_const<const T>);
 
   template <typename T> struct IsFunctionTrait : public BoolConstant<is_function<T>> {};
 
@@ -330,60 +338,35 @@ namespace frt::traits {
   template <typename T> struct IsUnsignedTrait : BoolConstant<is_unsigned<T>> {};
 
   namespace internal {
-    template <typename From, typename To, bool = is_void<From> || is_function<To> || is_array<To>>
-    struct IsConvertibleHelper {
-      using type = BoolConstant<is_void<To>>;
-    };
+    template <typename From, typename To>
+    struct IsConvertibleHelper : ConjunctionTrait<traits::IsVoidTrait<From>, traits::IsVoidTrait<To>> {};
 
-    template <typename From, typename To> class IsConvertibleHelper<From, To, false> {
-      template <typename To1> static void test1(To1 /*unused*/) noexcept {}
+    template <class From, class To>
+    requires requires {
+      static_cast<To (*)()>(nullptr);
+      traits::declval<void (&)(To)>()(traits::declval<From>());
+    }
+    struct IsConvertibleHelper<From, To> : traits::TrueType {};
 
-      template <typename From1, typename To1>
-      static TrueType test2(int /*unused*/) noexcept requires(requires { test1<To1>(traits::declval<From1>()); }) {
-        return {};
-      }
+    template <typename From, typename To>
+    struct IsNothrowConvertibleHelper : ConjunctionTrait<traits::IsVoidTrait<From>, traits::IsVoidTrait<To>> {};
 
-      template <typename, typename> static FalseType test2(...) noexcept {
-        return {};
-      }
-
-    public:
-      using type = decltype(test2<From, To>(0));
-    };
-
-    template <typename From, typename To, bool = is_void<From> || is_function<To> || is_array<To>>
-    struct IsNothrowConvertibleHelper {
-      using type = BoolConstant<is_void<To>>;
-    };
-
-    template <typename From, typename To> class IsNothrowConvertibleHelper<From, To, false> {
-      template <typename To1> static void test1(To1 /*unused*/) noexcept {}
-
-      template <typename From1, typename To1>
-      static TrueType test2(int /*unused*/) noexcept requires(requires {
-        // clang-format off
-        { test1<To1>(traits::declval<From1>()) } noexcept;
-        // clang-format on
-      }) {
-        return {};
-      }
-
-      template <typename, typename> static FalseType test2(...) noexcept {
-        return {};
-      }
-
-    public:
-      using type = decltype(test2<From, To>(0));
-    };
+    template <class From, class To>
+    requires requires {
+      static_cast<To (*)()>(nullptr);
+      { traits::declval<void (&)(To) noexcept>()(traits::declval<From>()) }
+      noexcept;
+    }
+    struct IsNothrowConvertibleHelper<From, To> : traits::TrueType {};
   } // namespace internal
 
   template <typename From, typename To>
-  inline constexpr bool is_convertible = internal::IsConvertibleHelper<From, To>::type::value;
+  inline constexpr bool is_convertible = internal::IsConvertibleHelper<From, To>::value;
 
   template <typename From, typename To> struct IsConvertibleTrait : BoolConstant<is_convertible<From, To>> {};
 
   template <typename From, typename To>
-  inline constexpr bool is_nothrow_convertible = internal::IsNothrowConvertibleHelper<From, To>::type::value;
+  inline constexpr bool is_nothrow_convertible = internal::IsNothrowConvertibleHelper<From, To>::value;
 
   template <typename From, typename To>
   struct IsNothrowConvertibleTrait : BoolConstant<is_nothrow_convertible<From, To>> {};
@@ -401,6 +384,8 @@ namespace frt::traits {
   template <typename T> struct AddVolatileTrait { using type = AddVolatile<T>; };
 
   template <typename T> using AddCV = AddConst<AddVolatile<T>>;
+
+  template <typename T> struct AddCVTrait { using type = AddCV<T>; };
 
   template <typename T> using AddLValueReference = T&;
 
@@ -764,12 +749,39 @@ namespace frt::traits {
 
   template <typename T> struct RemoveCVRefTrait { using type = RemoveCVRef<T>; };
 
-  template <typename T>
-  using Decay = Conditional<traits::is_array<RemoveReference<T>>,
-      RemoveExtent<RemoveReference<T>>*,
-      Conditional<traits::is_function<RemoveReference<T>>, AddPointer<RemoveReference<T>>, RemoveCVRef<T>>>;
+  namespace internal {
+    struct Two {
+      char data[2]; // NOLINT(modernize-avoid-c-arrays)
+    };
 
-  template <typename T> struct DecayTrait { using type = Decay<T>; };
+    struct IsReferenceableImpl {
+      template <typename T> static T& test(int);
+
+      template <typename T> static Two test(...);
+    };
+
+    template <typename T>
+    inline constexpr bool is_referenceable = !is_same<decltype(IsReferenceableImpl::test<T>(0)), Two>;
+
+    template <typename U, bool> struct DecayTraitImpl { using type = RemoveCV<U>; };
+
+    template <typename U> struct DecayTraitImpl<U, true> {
+    public:
+      using type = Conditional<is_array<U>,
+          typename RemoveExtentTrait<U>::type*,
+          Conditional<is_function<U>, typename AddPointerTrait<U>::type, typename RemoveCVTrait<U>::type>>;
+    };
+  } // namespace internal
+
+  template <typename T> struct DecayTrait {
+  private:
+    using U = RemoveReference<T>;
+
+  public:
+    using type = typename internal::DecayTraitImpl<U, internal::is_referenceable<U>>::type;
+  };
+
+  template <typename T> using Decay = typename DecayTrait<T>::type;
 
   template <bool B, typename T = void> struct EnableIfTrait {};
 
@@ -782,15 +794,14 @@ namespace frt::traits {
   template <typename T> struct CommonTypeTrait<T> : CommonTypeTrait<T, T> {};
 
   namespace internal {
-    template <typename T1, typename T2> using If = decltype(dependent_false<T1> ? declval<T1>() : declval<T2>());
+    template <typename T1, typename T2> using If = decltype(false ? declval<T1>() : declval<T2>());
 
     template <typename, typename, typename = void> struct DecayConditionalResult {};
 
     template <typename T1, typename T2>
     struct DecayConditionalResult<T1, T2, Void<If<T1, T2>>> : DecayTrait<If<T1, T2>> {};
 
-    template <typename T1, typename T2, typename = void>
-    struct CommonType2Impl : DecayConditionalResult<const T1&, const T2&> {};
+    template <typename T1, typename T2, typename = void> struct CommonType2Impl {};
 
     template <typename T1, typename T2>
     struct CommonType2Impl<T1, T2, Void<If<T1, T2>>> : DecayConditionalResult<T1, T2> {};
@@ -810,6 +821,9 @@ namespace frt::traits {
   } // namespace internal
 
   template <typename T1, typename T2, typename... R>
+  requires requires {
+    typename internal::CommonTypeMultiImpl<void, T1, T2, R...>;
+  }
   struct CommonTypeTrait<T1, T2, R...> : internal::CommonTypeMultiImpl<void, T1, T2, R...> {};
 
   template <typename... Ts> using CommonType = typename CommonTypeTrait<Ts...>::type;
