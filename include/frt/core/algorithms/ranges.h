@@ -319,21 +319,22 @@ namespace frt {
         } else if constexpr (ADLSize<T>) {
           return noexcept(size(traits::declval<T&>()));
         } else {
-          return noexcept(End{}(traits::declval<T&>() - Begin{}(traits::declval<T&>())));
+          return noexcept(End{}(traits::declval<T&>()) - Begin{}(traits::declval<T&>()));
         }
       }
 
     public:
       template <typename T>
-      requires traits::is_bounded_array<traits::RemoveReference<T>> || MemberSize<T> || ADLSize<T>
-      constexpr auto operator()(T&& object) const noexcept(is_noexcept<T>()) {
+      constexpr auto operator()(T&& object) const noexcept(is_noexcept<T>()) requires(
+          traits::is_bounded_array<traits::RemoveReference<
+              T>> || MemberSize<T> || ADLSize<T> || (ForwardRange<T> && SizedSentinelFor<RangeSentinel<T>, RangeIterator<T>>)) {
         if constexpr (traits::is_bounded_array<traits::RemoveReference<T>>) {
           return traits::extent<traits::RemoveReference<T>>;
-        } else if constexpr (MemberSize<T> && NotSizeDisabled<T> && frt::Integral<decltype(object.size())>) {
+        } else if constexpr (MemberSize<T>) {
           return ranges_access_internal::to_unsigned_like(object.size());
-        } else if constexpr (ADLSize<T> && NotSizeDisabled<T>) {
+        } else if constexpr (ADLSize<T>) {
           return ranges_access_internal::to_unsigned_like(size(object));
-        } else if constexpr (ForwardRange<T> && SizedSentinelFor<RangeSentinel<T>, RangeIterator<T>>) {
+        } else {
           return ranges_access_internal::to_unsigned_like(frt::end(object) - frt::begin(object));
         }
       }
@@ -344,7 +345,7 @@ namespace frt {
       requires requires(T&& object) {
         ranges_access_internal::to_signed_like(Size{}(object));
       }
-      constexpr auto operator()(T&& object) const noexcept(Size{}(traits::declval<T&&>())) {
+      constexpr auto operator()(T&& object) const noexcept(noexcept(Size{}(traits::declval<T&&>()))) {
         return ranges_access_internal::to_signed_like(Size{}(frt::forward<T>(object)));
       }
     };
@@ -409,7 +410,7 @@ namespace frt {
     public:
       template <typename T>
       requires MemberData<T> || ContiguousBegin<T>
-      constexpr bool operator()(T&& object) const noexcept(is_noexcept<T>()) {
+      constexpr auto operator()(T&& object) const noexcept(is_noexcept<T>()) {
         if constexpr (MemberData<T>) {
           return frt::forward<T>(object).data();
         } else {

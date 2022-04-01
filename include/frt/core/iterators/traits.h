@@ -122,7 +122,6 @@ namespace frt {
     using reference = T&;
     using iterator_category = frt::RandomAccessIteratorTag;
     using iterator_concept = frt::ContiguousIteratorTag;
-    using __frt_iterator_traits_primary = void;
   };
 
   namespace internal {
@@ -141,20 +140,20 @@ namespace frt {
 
     template <typename I>
     requires requires {
-      typename IterConceptTraits<I>::iterator_category;
+      typename IterConceptTraits<I>::type::iterator_category;
     }
     struct IterConcept2<I> {
-      using type = typename IterConceptTraits<I>::iterator_category;
+      using type = typename IterConceptTraits<I>::type::iterator_category;
     };
 
     template <typename I> struct IterConcept1 : IterConcept2<I> {};
 
     template <typename I>
     requires requires {
-      typename IterConceptTraits<I>::iterator_concept;
+      typename IterConceptTraits<I>::type::iterator_concept;
     }
     struct IterConcept1<I> {
-      using type = typename IterConceptTraits<I>::iterator_concept;
+      using type = typename IterConceptTraits<I>::type::iterator_concept;
     };
 
     template <typename I> using IterConcept = typename IterConcept1<I>::type;

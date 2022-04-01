@@ -401,9 +401,11 @@ namespace frt::traits {
 
   template <typename T> using RemovePointer = typename RemovePointerTrait<T>::type;
 
-  template <typename T> using AddPointer = T*;
+  template <typename T> struct AddPointerTrait { using type = T*; };
 
-  template <typename T> struct AddPointerTrait { using type = AddPointer<T>; };
+  template <typename T> struct AddPointerTrait<T&> { using type = T*; };
+
+  template <typename T> using AddPointer = typename AddPointerTrait<T>::type;
 
   namespace internal {
     template <frt::isize N> struct AssociatedWChar;
