@@ -18,17 +18,17 @@
 
 namespace frt {
   namespace algorithm_internal {
+    // clang-format off
     template <typename T, typename I, typename Proj>
-    concept RangeIterEquals = IndirectBinaryPredicate < EqualTo,
-            Projected<I, Proj>,
-    const T* > ;
+    concept RangeIterEquals = IndirectBinaryPredicate <EqualTo, Projected<I, Proj>, const T*>;
+    // clang-format on
 
     struct Find {
       template <InputIterator I, SentinelFor<I> S, typename T, ProjFor<I> Proj = Identity>
       [[nodiscard]] constexpr I operator()(I first, S last, const T& value, Proj proj = {}) const
           noexcept(traits::is_nothrow_invocable<Proj, IterValue<I>>) requires RangeIterEquals<T, I, Proj> {
         for (; first != last; ++first) {
-          if (EqualTo{}(invoke(proj, *first), value)) {
+          if (EqualTo{}(frt::invoke(proj, *first), value)) {
             return first;
           }
         }
@@ -55,7 +55,7 @@ namespace frt {
       [[nodiscard]] constexpr I operator()(I first, S last, Pred pred, Proj proj = {}) const
           noexcept(traits::is_nothrow_invocable<Proj, IterValue<I>>) {
         for (; first != last; ++first) {
-          if (invoke(pred, invoke(proj, *first))) {
+          if (frt::invoke(pred, frt::invoke(proj, *first))) {
             return first;
           }
         }
@@ -84,7 +84,7 @@ namespace frt {
       [[nodiscard]] constexpr I operator()(I first, S last, Pred pred, Proj proj = {}) const
           noexcept(traits::is_nothrow_invocable<Proj, IterValue<I>>) {
         for (; first != last; ++first) {
-          if (!invoke(pred, invoke(proj, *first))) {
+          if (!frt::invoke(pred, frt::invoke(proj, *first))) {
             return first;
           }
         }
@@ -112,7 +112,7 @@ namespace frt {
           IndirectUnaryPredicate<Projected<I, Proj>> Pred>
       [[nodiscard]] constexpr bool operator()(I first, S last, Pred pred, Proj proj = {}) const
           noexcept(traits::is_nothrow_invocable<Proj, IterValue<I>>) {
-        return find_if_not(first, last, frt::ref(pred), frt::ref(proj)) == last;
+        return frt::find_if_not(first, last, frt::ref(pred), frt::ref(proj)) == last;
       }
 
       template <InputRange R,
@@ -135,7 +135,7 @@ namespace frt {
           IndirectUnaryPredicate<Projected<I, Proj>> Pred>
       [[nodiscard]] constexpr bool operator()(I first, S last, Pred pred, Proj proj = {}) const
           noexcept(traits::is_nothrow_invocable<Proj, IterValue<I>>) {
-        return find_if(first, last, frt::ref(pred), frt::ref(proj)) != last;
+        return frt::find_if(first, last, frt::ref(pred), frt::ref(proj)) != last;
       }
 
       template <InputRange R,
@@ -158,7 +158,7 @@ namespace frt {
           IndirectUnaryPredicate<Projected<I, Proj>> Pred>
       [[nodiscard]] constexpr bool operator()(I first, S last, Pred pred, Proj proj = {}) const
           noexcept(traits::is_nothrow_invocable<Proj, IterValue<I>>) {
-        return find_if(first, last, frt::ref(pred), frt::ref(proj)) == last;
+        return frt::find_if(first, last, frt::ref(pred), frt::ref(proj)) == last;
       }
 
       template <InputRange R,
