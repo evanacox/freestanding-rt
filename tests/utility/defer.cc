@@ -12,4 +12,58 @@
 #include "frt/types/move.h"
 #include "gtest/gtest.h"
 
-TEST(FrtUtilityDefer, Defer) {}
+namespace {
+  TEST(FrtUtilityDefer, DeferWorks) {
+    {
+      int x = 2;
+
+      {
+        auto _ = frt::defer([&x] {
+          x = 1;
+        });
+
+        EXPECT_EQ(x, 2);
+      }
+
+      EXPECT_EQ(x, 1);
+    }
+
+    {
+      int x = 4;
+
+      {
+        auto d1 = frt::defer([&x] {
+          x = 1;
+        });
+
+        {
+          // move responsibility for running defer into this scope
+          auto d2 = frt::move(d1);
+
+          EXPECT_EQ(x, 4);
+        } // should run here
+
+        EXPECT_EQ(x, 1);
+
+        x = 2;
+      } // d1 shouldn't run here
+
+      EXPECT_EQ(x, 2);
+    }
+
+    {
+      int x = 3;
+
+      [&x] {
+        auto _ = frt::defer([&x] {
+          x = 2;
+        });
+
+        // 'early return', should still execute
+        return;
+      }();
+
+      EXPECT_EQ(x, 2);
+    }
+  }
+} // namespace

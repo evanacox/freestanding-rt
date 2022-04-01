@@ -9,3 +9,16 @@
 //======---------------------------------------------------------------======//
 
 #include "frt/frt.h"
+#include <iostream>
+#include <vector>
+
+int main() {
+  std::vector<int> vec{1, 2, 3, 4, 5};
+
+  static_assert(std::indirectly_readable<frt::Projected<decltype(vec)::iterator, frt::Identity>>);
+  static_assert(frt::IndirectlyReadable<frt::Projected<decltype(vec)::iterator, frt::Identity>>);
+
+  std::cout << frt::any_of(vec, [](int x) {
+    return x > 5;
+  });
+}

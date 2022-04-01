@@ -15,33 +15,35 @@
 
 namespace traits = frt::traits;
 
-struct S {
-  int i;
-};
+namespace {
+  struct S {
+    int i;
+  };
 
-bool operator==(const S& x, const S& y) {
-  return x.i == y.i;
-}
+  bool operator==(const S& x, const S& y) {
+    return x.i == y.i;
+  }
 
-bool operator==(const volatile S& x, const volatile S& y) {
-  return x.i == y.i;
-}
+  bool operator==(const volatile S& x, const volatile S& y) {
+    return x.i == y.i;
+  }
 
-template <typename T> void test(T& t) {
-  static_assert(traits::is_const<traits::RemoveReference<decltype(frt::as_const(t))>>);
-  static_assert(traits::is_const<traits::RemoveReference<decltype(frt::as_const<T>(t))>>);
-  static_assert(traits::is_const<traits::RemoveReference<decltype(frt::as_const<const T>(t))>>);
-  static_assert(traits::is_const<traits::RemoveReference<decltype(frt::as_const<volatile T>(t))>>);
-  static_assert(traits::is_const<traits::RemoveReference<decltype(frt::as_const<const volatile T>(t))>>);
+  template <typename T> void test(T& t) {
+    static_assert(traits::is_const<traits::RemoveReference<decltype(frt::as_const(t))>>);
+    static_assert(traits::is_const<traits::RemoveReference<decltype(frt::as_const<T>(t))>>);
+    static_assert(traits::is_const<traits::RemoveReference<decltype(frt::as_const<const T>(t))>>);
+    static_assert(traits::is_const<traits::RemoveReference<decltype(frt::as_const<volatile T>(t))>>);
+    static_assert(traits::is_const<traits::RemoveReference<decltype(frt::as_const<const volatile T>(t))>>);
 
-  EXPECT_EQ(frt::as_const(t), t);
-  EXPECT_EQ(frt::as_const<T>(t), t);
-  EXPECT_EQ(frt::as_const<const T>(t), t);
+    EXPECT_EQ(frt::as_const(t), t);
+    EXPECT_EQ(frt::as_const<T>(t), t);
+    EXPECT_EQ(frt::as_const<const T>(t), t);
 
-  // GTest breaks on volatile
-  assert(frt::as_const<volatile T>(t) == t);
-  assert(frt::as_const<const volatile T>(t) == t);
-}
+    // GTest breaks on volatile
+    assert(frt::as_const<volatile T>(t) == t);
+    assert(frt::as_const<const volatile T>(t) == t);
+  }
+} // namespace
 
 TEST(FrtUtilityAs, AsConst) {
   auto i = 3;

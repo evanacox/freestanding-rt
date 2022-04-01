@@ -22,7 +22,9 @@ function(frt_get_gtest)
     FetchContent_MakeAvailable(googletest)
 endfunction()
 
-set(FRT_TESTS_CORE core/bit.cc core/iterators/iterator_traits.cc)
+set(FRT_TESTS_CORE core/bit.cc
+        core/algorithms/non_modifying.cc
+        core/iterators/iterator_traits.cc core/algorithms/ranges.cc)
 set(FRT_TESTS_TYPES types/concepts.cc
         types/invoke.cc
         types/basic.cc
