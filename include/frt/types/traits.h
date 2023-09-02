@@ -642,7 +642,7 @@ namespace frt::traits {
 
   template <typename T>
   inline constexpr bool is_trivially_destructible = internal::IsDestructibleSafe<T>::value //
-      && __has_trivial_destructor(T);
+      && __is_trivially_destructible(T);
 
   template <typename T> struct IsTriviallyDestructibleTrait : BoolConstant<is_trivially_destructible<T>> {};
 
@@ -942,7 +942,7 @@ namespace frt::traits {
   template <typename T> using UnderlyingType = typename UnderlyingTypeTrait<T>::type;
 
   [[nodiscard]] FRT_ALWAYS_INLINE constexpr bool is_constant_evaluated() noexcept {
-#if __cpp_if_consteval >= 202106L
+#if defined(__cpp_if_consteval) && __cpp_if_consteval >= 202106L
     // clang-format off
     if consteval { return true; } else { return false; }
     // clang-format on
