@@ -19,13 +19,13 @@
 #endif
 
 extern "C" {
-  void* memcpy(void* __restrict to, const void* __restrict from, frt::usize length) noexcept;
+  void* memcpy(void* __restrict to, const void* __restrict from, frt::usize length);
 
-  void* memmove(void* to, const void* from, frt::usize length) noexcept;
+  void* memmove(void* to, const void* from, frt::usize length);
 
-  void* memset(void* to, int value, frt::usize length) noexcept;
+  void* memset(void* to, int value, frt::usize length);
 
-  int memcmp(const void* lhs, const void* rhs, frt::usize length) noexcept;
+  int memcmp(const void* lhs, const void* rhs, frt::usize length);
 }
 
 namespace frt {
